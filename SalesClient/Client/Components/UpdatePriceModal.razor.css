@@ -1,0 +1,9 @@
+﻿.form-group {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: .25rem;
+}
+
+.button-group {
+    float: right;
+}

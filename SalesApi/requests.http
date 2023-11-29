@@ -1,0 +1,55 @@
+
+GET https://localhost:7094/api/product
+
+###
+
+# @name getReadToken
+POST https://omegapoint-norge-workshop.eu.auth0.com/oauth/token
+content-type: application/json
+
+{
+    "client_id":"ozrjG9OAXgswPYYYmeQaDQZVPLDR3p9y",
+    "client_secret":"",
+    "audience":"sales-api",
+    "grant_type":"client_credentials",
+    "scope": "products.read"
+}
+
+###
+@readToken = {{getReadToken.response.body.access_token}}
+###
+
+# @name getWriteToken
+POST https://omegapoint-norge-workshop.eu.auth0.com/oauth/token
+content-type: application/json
+
+{
+    "client_id":"zxYUL7JzK8sIFxqf0h6bzqVb0zk28dhz",
+    "client_secret":"",
+    "audience":"sales-api",
+    "grant_type":"client_credentials",
+    "scope": "products.write"
+}
+
+###
+@writeToken = {{getWriteToken.response.body.access_token}}
+###
+
+GET http://localhost:5017/api/product
+Authorization: Bearer {{readToken}}
+
+###
+
+GET http://localhost:5017/api/product/234QWE
+Authorization: Bearer {{readToken}}
+
+###
+
+PUT http://localhost:5017/api/product/123GQWE
+Authorization: Bearer {{writeToken}}
+content-type: application/json
+
+{
+    "price": 1000,
+    "currency": "NOK"
+}

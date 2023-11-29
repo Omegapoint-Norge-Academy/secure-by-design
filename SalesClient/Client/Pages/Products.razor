@@ -1,0 +1,52 @@
+﻿@page "/"
+@using SalesClient.Client.Services
+@using Contracts
+@using SalesClient.Client.Components
+@using SalesClient.Client.Models
+
+@inject IProductService ProductService
+
+<table>
+    <tr>
+        <th>Id</th>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Market Id</th>
+        <th></th>
+    </tr>
+    @foreach (var product in _products.Values.OrderBy(x => x.Id))
+    {
+        <tr>
+            <td>@product.Id</td>
+            <td>@product.Name</td>
+            <td>@product.Price @product.Currency</td>
+            <td>@product.MarketId</td>
+            <td><button @onclick="@(_ => UpdatePrice(product.Id))">Update price</button></td>
+        </tr>
+    }
+</table>
+@code
+{
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = default!;
+
+    private Dictionary<string, ProductDTO> _products = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _products = (await ProductService.GetAllAsync()).ToDictionary(x => x.Id);
+    }
+
+    private async Task UpdatePrice(string id)
+    {
+        var updatePriceModal = Modal.Show<UpdatePriceModal>();
+        var result = await updatePriceModal.Result;
+
+        if (result.Confirmed)
+        {
+            var updatePriceModel = (UpdatePriceModel)result.Data;
+            var updatedProduct = await ProductService.UpdatePrice(id, updatePriceModel);
+            _products[updatedProduct.Id] = updatedProduct;
+        }
+    }
+}

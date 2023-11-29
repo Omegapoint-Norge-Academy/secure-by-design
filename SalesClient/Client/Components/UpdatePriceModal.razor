@@ -1,0 +1,39 @@
+﻿@using Contracts
+@using SalesClient.Client.Models
+@using Microsoft.AspNetCore.Components.Forms
+
+<EditForm Model="_updatePriceModel" OnValidSubmit="@SubmitForm">
+    <div class="form-group">
+        <label for="price">Price</label>
+        <InputNumber @bind-Value="_updatePriceModel.Price"
+                     id="price"/>
+    </div>
+    <div class="form-group">
+        <label for="currency">Currency</label>
+        <InputSelect @bind-Value="_updatePriceModel.Currency"
+                     id="currency">
+            <option value="NOK">NOK</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+        </InputSelect>
+        </div>
+    <br/>
+    
+    <div class="button-group">
+        <button type="submit">Submit</button>
+        <button @onclick="Cancel">Cancel</button>
+    </div>
+</EditForm>
+
+@code {
+    private UpdatePriceModel _updatePriceModel = new() { Currency = "NOK" };
+
+    [CascadingParameter]
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+
+    protected override void OnInitialized() => BlazoredModal.SetTitle("Update price");
+
+    private async Task SubmitForm() => await BlazoredModal.CloseAsync(ModalResult.Ok(_updatePriceModel));
+    private async Task Cancel() => await BlazoredModal.CancelAsync();
+
+}

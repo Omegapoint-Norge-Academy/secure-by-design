@@ -1,0 +1,42 @@
+﻿@using SalesClient.Client.Security
+
+@inject IAuthenticationService AuthenticationService;
+@inject NavigationManager NavigationManager;
+
+<AuthorizeView>
+    <NotAuthorized>
+        <div class="button-container">
+            <button @onclick="@HandleLoginClicked">
+                Login
+            </button>
+        </div>
+    </NotAuthorized>
+    <Authorized>
+        <div class="button-container">
+            <button @onclick="@HandleLogoutClicked">
+                Logout (@_name)
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [CascadingParameter]
+    Task<AuthenticationState> AuthenticationState { get; set; }
+
+    private string? _name;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _name = (await AuthenticationState)?.User?.Identity?.Name;
+    }
+
+    private void HandleLoginClicked()
+    {
+        AuthenticationService.Login($"/{NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}");
+    }
+    private void HandleLogoutClicked()
+    {
+        AuthenticationService.Logout();
+    }
+}

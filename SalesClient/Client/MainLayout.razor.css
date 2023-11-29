@@ -1,0 +1,25 @@
+﻿.app-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+main {
+    position: relative;
+    padding-top: calc(54px + .5rem);
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: .75rem;
+    max-width: 80rem;
+    align-self: center;
+    width: 100%;
+    flex-grow: 1;
+    height: 100%;
+}
+
+#op-logo {
+    width: 200px;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}

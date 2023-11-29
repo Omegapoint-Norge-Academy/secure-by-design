@@ -1,0 +1,11 @@
+{
+  "TokenUri": "https://omegapoint-norge-workshop.eu.auth0.com/oauth/token",
+  "ReadClient": {
+    "ClientId": "ozrjG9OAXgswPYYYmeQaDQZVPLDR3p9y",
+    "ClientSecret": ""
+  },
+  "WriteClient": {
+    "ClientId": "zxYUL7JzK8sIFxqf0h6bzqVb0zk28dhz",
+    "ClientSecret": ""
+  }
+}
