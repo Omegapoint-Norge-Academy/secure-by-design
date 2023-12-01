@@ -60,6 +60,7 @@ builder.Services
             }
 
             // Auth0 specific implementation
+            context.ProtocolMessage.SetParameter("audience", "sales-api");
             return Task.CompletedTask;
         };
 

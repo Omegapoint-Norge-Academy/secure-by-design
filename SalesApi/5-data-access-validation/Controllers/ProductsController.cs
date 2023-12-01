@@ -32,6 +32,11 @@ public class ProductsController(IMapper mapper, IProductRepository productReposi
 
         var product = await productRepository.GetBy(id);
 
+        if (product == null)
+        {
+            return NotFound();
+        }
+
         if (!User.HasClaim(claim =>
                 claim.Type == "urn:permissions:market" &&
                 claim.Value == product.MarketId))

@@ -35,7 +35,7 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
         {
             identity.AddClaim(claim);
         }
-        if (identity.Claims.Any(c => c.Type == "scope" && c.Value == scope))
+        else if (identity.Claims.Any(c => c.Type == "scope" && c.Value == scope))
         {
             identity.AddClaim(claim);
         }

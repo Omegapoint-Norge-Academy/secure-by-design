@@ -127,7 +127,7 @@ content-type: application/json
     "client_secret":"<ask course instructor>",
     "audience":"sales-api",
     "grant_type":"client_credentials",
-    "scope": "products.read products.write"
+    "scope": "products.read"
 }
 ```
 
@@ -174,7 +174,7 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
         {
             identity.AddClaim(claim);
         }
-        if (identity.Claims.Any(c => c.Type == "scope" && c.Value == scope))
+        else if (identity.Claims.Any(c => c.Type == "scope" && c.Value == scope))
         {
             identity.AddClaim(claim);
         }
@@ -219,7 +219,7 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
         {
             identity.AddClaim(claim);
         }
-        if (identity.Claims.Any(c => c.Type == "scope" && c.Value == scope))
+        else if (identity.Claims.Any(c => c.Type == "scope" && c.Value == scope))
         {
             identity.AddClaim(claim);
         }
@@ -272,7 +272,7 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
         {
             identity.AddClaim(claim);
         }
-        if (identity.Claims.Any(c => c.Type == "scope" && c.Value == scope))
+        else if (identity.Claims.Any(c => c.Type == "scope" && c.Value == scope))
         {
             identity.AddClaim(claim);
         }
@@ -354,6 +354,8 @@ In our example, we need to retrieve the product before verifying that the user h
 
 We can choose between HTTP status codes `403 Forbidden` and `404 Not Found` if we fail to validate permission to the data, depending on if we want to reveal that data exists or not, respectively.
 
+Lets also check if the requested product exists and return `404 Not Found` in that case.
+
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
 <p>
@@ -375,6 +377,11 @@ public async Task<ActionResult<IEnumerable<ProductDTO>>> GetById([FromRoute] str
     }
 
     var product = await productRepository.GetBy(id);
+
+    if (product == null)
+    {
+        return NotFound();
+    }
 
     if (!User.HasClaim(claim =>
             claim.Type == "urn:permissions:market" &&
@@ -514,6 +521,11 @@ public async Task<ActionResult<IEnumerable<ProductDTO>>> GetById([FromRoute] str
 
     var product = await productRepository.GetBy(new ProductId(id));
 
+    if (product == null)
+    {
+        return NotFound();
+    }
+
     if (!User.HasClaim(claim =>
             claim.Type == "urn:permissions:market" &&
             claim.Value == product.MarketId))
@@ -594,7 +606,7 @@ public class ProductService(IProductRepository productRepository, IHttpContextAc
 
         var products = await productRepository.GetAllAvailable();
 
-        var allowedProducts = products.Where(product => !user.HasClaim(claim =>
+        var allowedProducts = products.Where(product => user.HasClaim(claim =>
                 claim.Type == "urn:permissions:market" &&
                 claim.Value == product.MarketId)).ToList();
 
@@ -629,11 +641,11 @@ public class ProductService(IProductRepository productRepository, IHttpContextAc
 
         var products = await productRepository.GetAllAvailable();
 
-        var allowedProducts = products.Where(product => !user.HasClaim(claim =>
+        var allowedProducts = products.Where(product => user.HasClaim(claim =>
                 claim.Type == "urn:permissions:market" &&
-                claim.Value == product.MarketId));
+                claim.Value == product.MarketId)).ToList();
 
-        return (ReadDataResult.Success, products);
+        return (ReadDataResult.Success, allowedProducts);
     }
 
     public async Task<(ReadDataResult, Product?)> GetWith(ProductId id)
@@ -838,9 +850,11 @@ public class ProductService(IProductRepository productRepository, IPermissionSer
 
         var products = await productRepository.GetAllAvailable();
 
-        var allowedProducts = products.Where(product => permissionService.HasPermissionToMarket(product.MarketId));
+        var allowedProducts = products
+            .Where(product => permissionService.HasPermissionToMarket(product.MarketId))
+            .ToList();
 
-        return (ReadDataResult.Success, products);
+        return (ReadDataResult.Success, allowedProducts);
     }
 
     public async Task<(ReadDataResult, Product?)> GetWith(ProductId id)

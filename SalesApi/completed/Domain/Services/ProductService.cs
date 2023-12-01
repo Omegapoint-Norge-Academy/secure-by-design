@@ -15,9 +15,11 @@ public class ProductService(IProductRepository productRepository, IPermissionSer
 
         var products = await productRepository.GetAllAvailable();
 
-        var allowedProducts = products.Where(product => permissionService.HasPermissionToMarket(product.MarketId));
+        var allowedProducts = products
+            .Where(product => permissionService.HasPermissionToMarket(product.MarketId))
+            .ToList();
 
-        return (ReadDataResult.Success, products);
+        return (ReadDataResult.Success, allowedProducts);
     }
 
     public async Task<(ReadDataResult, Product?)> GetWith(ProductId id)
