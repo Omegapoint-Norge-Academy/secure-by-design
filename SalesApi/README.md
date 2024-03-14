@@ -694,7 +694,7 @@ builder.Services.AddTransient<IProductService, ProductService>();
 
 Now lets use that service from the `ProductController`. Refactor the controller to use the `ProductService`.
 
-We want the ProductController to return the proper HTTP responses based on the ReadDataResult from the ProductService. The possible HTTP responses we can return in ASP.NET is:
+We want the ProductController to return the proper HTTP responses based on the ReadDataResult from the ProductService. These are some of the possible HTTP responses we can return in ASP.NET is:
 
 ```csharp
 OK()
