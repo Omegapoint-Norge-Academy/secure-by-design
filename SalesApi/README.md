@@ -402,6 +402,8 @@ Validation of access to data is often overlooked and is called Insecure Direct O
 
 # Step 6 - Secure by Design
 
+For this step, start coding in the `/SalesAPI/5-data-access-validation` folder.
+
 So far in the workshop we have added authentication with a third party identity provider, authorization by transforming the user's access token into a permission model and validated requests. The purpose of this step is to refactor the code in a way that makes it both more readable and more secure. We are going to use concepts from Secure by Design to do this. We want to use design patterns that also helps secure our code.
 
 ## Domain primitives
