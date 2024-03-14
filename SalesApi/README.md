@@ -1,22 +1,23 @@
 # Workshop guide - Secure API
 
+- [Workshop guide - Secure API](#workshop-guide---secure-api)
 - [Introduction](#introduction)
 - [Step 0](#step-0)
 - [Step 1 - Token validation](#step-1---token-validation)
-  * [Add JWT bearer authentication](#add-jwt-bearer-authentication)
-  * [Add authorization](#add-authorization)
-  * [Add middleware](#add-middleware)
-  * [Verify token validation](#verify-token-validation)
-- [Step 2 – Transform the access token to permissions](#step-2---transform-the-access-token-to-permissions)
-  * [Transform to local permissions](#transform-to-local-permissions)
-  * [Get market permission form IUserPermissionRepository](#get-market-permission-form-iuserpermissionrepository)
+  - [Add JWT bearer authentication](#add-jwt-bearer-authentication)
+  - [Add authorization](#add-authorization)
+  - [Add middleware](#add-middleware)
+  - [Verify token validation](#verify-token-validation)
+- [Step 2 – Transform the access token to permissions](#step-2--transform-the-access-token-to-permissions)
+  - [Transform to local permissions](#transform-to-local-permissions)
+  - [Get market permission form IUserPermissionRepository](#get-market-permission-form-iuserpermissionrepository)
 - [Step 3 - validate data in the request](#step-3---validate-data-in-the-request)
 - [Step 4 - Validate permission to perform the operation](#step-4---validate-permission-to-perform-the-operation)
 - [Step 5 - Validate permission to access the data](#step-5---validate-permission-to-access-the-data)
 - [Step 6 - Secure by Design](#step-6---secure-by-design)
-  * [Domain primitives](#domain-primitives)
-  * [Handling errors](#handling-errors)
-  * [Handling permissions securely](#handling-permissions-securely)
+  - [Domain primitives](#domain-primitives)
+  - [Handling errors](#handling-errors)
+  - [Handling permissions securely](#handling-permissions-securely)
 - [Workshop summary](#workshop-summary)
 
 # Introduction
@@ -400,12 +401,15 @@ public async Task<ActionResult<IEnumerable<ProductDTO>>> GetById([FromRoute] str
 Validation of access to data is often overlooked and is called Insecure Direct Object Reference vulnerability (IDOR). Failure to validate data access means the attacker can access any product by iterating product identifiers. Note that making identifiers hard to guess using randomized values or GUID does not mitigate this vulnerability. It will make it harder for the attacker, but identifiers often leak, and you can’t revoke access.
 
 # Step 6 - Secure by Design
-The purpose of this step is to refactor the code in a way tha makes it both more readable and more secure. We are going to use concepts from Secure by Design to do this. We want to use design patterns that also helps secure our code.
+
+So far in the workshop we have added authentication with a third party identity provider, authorization by transforming the user's access token into a permission model and validated requests. The purpose of this step is to refactor the code in a way that makes it both more readable and more secure. We are going to use concepts from Secure by Design to do this. We want to use design patterns that also helps secure our code.
 
 ## Domain primitives
-To start, we introduce a `domain primitive` in the ProductId class that will validate input data and throws an exception if not valid. Create a class named `ProductId` in a separate file.
+To start, we introduce a `domain primitive` in the ProductId class that will validate input data and throws an exception if not valid. Create a folder in the `Domain`-folder called `DomainPrimitives` and create a class within it named `ProductId` in its own separate file.
 
 ```csharp
+namespace SalesApi.Domain.DomainPrimitives;
+
 public class ProductId
 {
     public ProductId(string id)
@@ -556,9 +560,11 @@ public class MappingProfile : Profile
 There are other properties in the `Product` model that should be encapsulated in a domain primitive, but we wont implement them all in this workshop. The productId serves as an example on how we would do this for a property.
 
 ## Handling errors
-So far we have all our code in the controller. This is neither a good nor scalable solution. We want to refactor this code into a `ProductService`. Lets create an interface named `IProductService` like below.
+So far we have all our code in the controller. This is neither a good nor scalable solution. We want to refactor this code into a `ProductService`. Lets create an interface named `IProductService` like below. We can place it a file called `IProductService.cs` in the folder `Domain/Services/`
 
 ```csharp
+namespace SalesApi.Domain.Services;
+
 public interface IProductService
 {
     Task<(ReadDataResult, List<Product>?)> GetAllAvailableProducts();
@@ -566,9 +572,11 @@ public interface IProductService
 }
 ```
 
-Also create the enum `ReadDataResult` this way:
+Also create the enum `ReadDataResult` in its own file as shown below, and place it in the `Domain/Model/` folder:
 
 ```csharp
+namespace SalesApi.Domain.Model;
+
 public enum ReadDataResult
 {
     Success = 0,
@@ -684,6 +692,15 @@ builder.Services.AddTransient<IProductService, ProductService>();
 
 Now lets use that service from the `ProductController`. Refactor the controller to use the `ProductService`.
 
+We want the ProductController to return the proper HTTP responses based on the ReadDataResult from the ProductService. The possible HTTP responses we can return in ASP.NET is:
+
+```csharp
+OK()
+NotFound()
+Forbid()
+BadRequest()
+```
+
 Hint: use a switch expression to evaluate the `ReadDataResult` and return the correct http status code.
 
 <details>
@@ -770,6 +787,8 @@ public interface IPermissionService
 This service enables us to represent permissions in a strongly-typed way that suits our domain. Lets implement this in a class we name `HttpContextPermissionService`. This service will replace our previously coded `ClaimsTransformation`, so you can delete that class.
 
 ```csharp
+using System.Security.Claims;
+namespace SalesApi.Domain.Services;
 
 public class HttpContextPermissionService : IPermissionService
 {
