@@ -1,9 +1,9 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Reflection;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using SalesApi.Infrastructure;
+using System.IdentityModel.Tokens.Jwt;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +46,8 @@ builder.Services.AddSingleton<IClaimsTransformation, ClaimsTransformation>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
