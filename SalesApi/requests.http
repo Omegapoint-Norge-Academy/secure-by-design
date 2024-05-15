@@ -35,17 +35,17 @@ content-type: application/json
 @writeToken = {{getWriteToken.response.body.access_token}}
 ###
 
-GET http://localhost:5017/api/product
+GET https://localhost:5017/api/product
 Authorization: Bearer {{readToken}}
 
 ###
 
-GET http://localhost:5017/api/product/234QWE
+GET https://localhost:5017/api/product/234QWE
 Authorization: Bearer {{readToken}}
 
 ###
 
-PUT http://localhost:5017/api/product/123GQWE
+PUT https://localhost:5017/api/product/123GQWE
 Authorization: Bearer {{writeToken}}
 content-type: application/json
 
