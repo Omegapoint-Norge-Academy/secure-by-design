@@ -10,6 +10,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Contracts", "Contracts\Contracts.csproj", "{ABB45BCB-F56B-4CB9-913D-E6B79ECA67E0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SalesApi", "SalesApi", "{CAF3ADDD-C5A1-485F-9020-402FFAF6F982}"
+	ProjectSection(SolutionItems) = preProject
+		SalesApi\requests.http = SalesApi\requests.http
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SalesApi.0-starting-point", "SalesApi\0-starting-point\SalesApi.0-starting-point.csproj", "{B8B8A7FD-0C87-4C7C-A8EA-BEB1945CB0A0}"
 EndProject
