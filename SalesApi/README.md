@@ -466,7 +466,7 @@ public class Product(ProductId id, string name, decimal price, string marketId)
 </p>
 </details>
 
-- Update the `ProductRepository` to use this new type. Remember to update the signature of the `GetBy` method to use the `ProductId` instead of the inputted `string`
+- Update the `ProductRepository` to use this new type. Remember to update the signature of the `GetBy` method in both the repository and its interface, `IProductRepository`, to use the `ProductId` instead of the inputted `string`.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -503,7 +503,7 @@ public class ProductRepository : IProductRepository
 </p>
 </details>
 
-- Update the validation in `ProductController` to use the static `IsValid` method and the `ProductId`. The controller should still accept a `string` as a input, but a `ProductId` should be created and inserted into the `GetBy` method of the repository.
+- Update the validation in `ProductsController` to use the static `IsValid` method and the `ProductId`. The controller should still accept a `string` as an input, but a `ProductId` should be created and inserted into the `GetBy` method of the repository.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
