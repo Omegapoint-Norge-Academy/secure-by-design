@@ -11,7 +11,7 @@
 - [Step 2 – Transform the access token to permissions](#step-2--transform-the-access-token-to-permissions)
   - [Transform to local permissions](#transform-to-local-permissions)
   - [Get market permission form IUserPermissionRepository](#get-market-permission-form-iuserpermissionrepository)
-- [Step 3 - validate data in the request](#step-3---validate-data-in-the-request)
+- [Step 3 - Validate data in the request](#step-3---validate-data-in-the-request)
 - [Step 4 - Validate permission to perform the operation](#step-4---validate-permission-to-perform-the-operation)
 - [Step 5 - Validate permission to access the data](#step-5---validate-permission-to-access-the-data)
 - [Step 6 - Secure by Design](#step-6---secure-by-design)
@@ -22,9 +22,9 @@
 
 # Introduction
 
-This part of the course will guide you through how you can create a secure web api using C# and dotnet 8. We base the model on principles of Zero Trust, Least Privilege, and design ideas from the book Secure by Design. The solution will be somewhat opinionated, the same level of security can of course be achieved with other styles and implementation choices. The model and concepts are general and you could easily implement them using other programming languages and frameworks. This course focus on what you should do within the context of a web api and ignores all the things you should we have in front of your API in the form of infrastructure protection, e.g. a firewall, WAF, API gateway or similar.
+This part of the course will guide you through how you can create a secure web API using C# and dotnet 8. We base the model on principles of Zero Trust, Least Privilege, and design ideas from the book Secure by Design. The solution will be somewhat opinionated, the same level of security can of course be achieved with other styles and implementation choices. The model and concepts are general and you could easily implement them using other programming languages and frameworks. This workshop focuses on what you should do within the context of a web API and ignores all the things you should we have in front of your API in the form of infrastructure protection, e.g. a firewall, WAF, API gateway or similar.
 
-To build a robust API we believe you have to implement a set of security mechanisms within you application, independent of framework and implementation details. This is not a complete list, as there are other things you should consider in addition. But if you have these main point covered you can be fairly assured that your system is secured against a lot of attack vectors.
+To build a robust API we believe you have to implement a set of security mechanisms within you application, independent of framework and implementation details. This is not a complete list, as there are other things you should consider in addition. But if you have these main points covered you can be fairly assured that your system is secured against a lot of attack vectors.
 We will implement the following mechanisms step by step:
 
 - Validating that the access token in the request is correct
@@ -56,9 +56,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 ```
 
-Configure the jwt bearer options like this:
+Configure the JWT bearer options like this:
 - Bind the appsettings section `JwtBearerOptions` to the options with `builder.Configuration.Bind("JwtBearerOptions", options)`
-- We should always validate the type claim of a token. This is not done by default. The type claim might differ from IDP to IDP. The best is when the IDP not only specifies that the token is a jwt token, but also that it is an access token. This is done by a `typ` claim with value `at+jwt`. Validating this will make sure the that the token is an id-token or something else. Not all IDPs do this, and Auth0 is one of them. We get a `typ` claim with value `JWT`. We should validate that with: `options.TokenValidationParameters.ValidTypes = new[] { "JWT" };`
+- We should always validate the type claim of a token. This is not done by default. The type claim might differ from IdP to IdP. The best is when the IdP not only specifies that the token is a JWT token, but also that it is an access token. This is done by a `typ` claim with value `at+jwt`. Validating this will make sure the that the token is an id-token or something else. Not all IdPs do this, and Auth0 is one of them. We get a `typ` claim with value `JWT`. We should validate that with: `options.TokenValidationParameters.ValidTypes = new[] { "JWT" };`
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -77,7 +77,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 </details>
 
 ## Add authorization
-We want to make sure that all our endpoints use our jwt bearer authentication. We do not want to relay on remembering to add the `[Authorize]` attribute to all controllers/endpoints. We want authentication to be opt-out rather than opt-in. This is done by adding authorization and configuring a default and fallback policy. In `Program.cs` add authorization:
+We want to make sure that all our endpoints use our JWT bearer authentication. We do not want to rely on remembering to add the `[Authorize]` attribute to all controllers/endpoints. We want authentication to be opt-out rather than opt-in. This is done by adding authorization and configuring a default and fallback policy. In `Program.cs` add authorization:
 
 ```csharp
 builder.Services.AddAuthorization(options =>
@@ -86,7 +86,7 @@ builder.Services.AddAuthorization(options =>
 });
 ```
 
-Build the policy using `AuthorizationPolicyBuilder`. Build it so that it requires an authenticated user and that the user is authenticated using the jwt bearer scheme. Set the `DefaultPolicy` and  `FallbackPolicy` options to the build policy.
+Build the policy using `AuthorizationPolicyBuilder`. Build it so that it requires an authenticated user and that the user is authenticated using the JWT bearer scheme. Set the `DefaultPolicy` and  `FallbackPolicy` options to the build policy.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -109,7 +109,7 @@ builder.Services.AddAuthorization(options =>
 </details>
 
 ## Add middleware
-Add authorization and authentication middleware after `app.UseHttpsRedirection()` in `Program.cs`. The order of these middlewares matter. Remember that we need to know who the user is (authentication) before we determines what the user has access to (authorization)
+Add authorization and authentication middleware after `app.UseHttpsRedirection()` in `Program.cs`. The order of these middlewares matter. Remember that we need to know who the user is (authentication) before we determine what the user has access to (authorization).
 
 ```csharp
 app.UseAuthentication();
@@ -145,7 +145,7 @@ Also test that a request with no token responds with `401 Unauthorized`
 
 This step can be done either as a continuation of step 1 or the 1-token-validation project can be used as a starting point.
 
-The purpose of this step to transform the access token into local permissions and to add any additional permissions that the users might have that is not represented in the access token. This might be permissions stored in the system or a local IDP.
+The purpose of this step is to transform the access token into local permissions and to add any additional permissions that the users might have that is not represented in the access token. This might be permissions stored in the system or a local IdP.
 
 In ASP.NET, we often implement this by using a claims transformation class. Create a new class named `ClaimsTransformation` in the `Infrastructure` folder of your project. Copy the below code to the class:
 
@@ -286,10 +286,10 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
 
 Before moving on, we want to emphasize the importance of striking the right balance between what the token contains and the permissions we need for access control. How we model identity and scopes are essential for how fine-grained our access control can be and how we can adapt as the system grows.
 
-# Step 3 - validate data in the request
+# Step 3 - Validate data in the request
 All parts of the request are untrusted and need to be validated. For the endpoint in our controller, we have one parameter: the product identifier. In our case, the identifier is not an arbitrary string of any size! It can contain only letters and digits and be ten characters or less. If the input string does not follow those rules, we can immediately return a `400 Bad Request`. This input validation will make injection attacks a lot harder.
 
-Lets edit the `ProductController` to validate the request and return 400 Bad Request if anything is not correct.
+Lets edit the `ProductController` to validate the request and return `400 Bad Request` if anything is not correct.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -559,7 +559,7 @@ public class MappingProfile : Profile
 }
 ```
 
-There are other properties in the `Product` model that should be encapsulated in a domain primitive, but we wont implement them all in this workshop. The productId serves as an example on how we would do this for a property.
+There are other properties in the `Product` model that should be encapsulated in a domain primitive, but we wont implement them all in this workshop. The ProductId serves as an example on how we would do this for a property.
 
 ## Handling errors
 So far we have all our code in the controller. This is neither a good nor scalable solution. We want to refactor this code into a `ProductService`. Lets create an interface named `IProductService` like below. We can place it a file called `IProductService.cs` in the folder `Domain/Services/`
@@ -593,7 +593,7 @@ Error and exception handling is a vital API security aspect. To detect intrusion
 
 Correct HTTP status codes are essential for security. An unexpected rise in 400, 401, 403, or 404 might indicate an attack.
 
-Note that the service class does not return HTTP status codes. Remember that you can use our service from contexts where HTTP status codes are irrelevant, like message bus integrations.
+Note that the service class does not return HTTP status codes. Remember that we can use our service from contexts where HTTP status codes are irrelevant, like message bus integrations.
 
 We only raise exceptions when something we did not design for has happened. One example of this strategy is the `ProductId` class, where `IsValid()` does not throw, but the constructor does. Our design always validates input data before we create domain primitives, so the constructor should never fail and thus throws an exception.
 
