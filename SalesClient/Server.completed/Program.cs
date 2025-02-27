@@ -42,7 +42,7 @@ builder.Services
 
         options.Authority = "https://omegapoint-norge-workshop.eu.auth0.com";
         options.ClientId = "sELZRGRZpJSJr2VIdsiD0XQZRW6T5nCN";
-        options.ClientSecret = "";
+        options.ClientSecret = "GCYMnyei-j5pFEUplfoO8eOR8Vx0YiIZAxmtvUH3EvTeU2-50oo6wQny0dKYz9s_";
 
         options.Scope.Clear();
         options.Scope.Add("openid");
@@ -109,21 +109,11 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseWebAssemblyDebugging();
-}
-else
-{
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
-app.UseRouting();
+app.UseHsts();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -131,6 +121,10 @@ app.UseAuthorization();
 app.MapControllers().RequireAuthorization("AuthenticatedUser");
 app.MapReverseProxy().RequireAuthorization("AuthenticatedUser");
 
-app.MapFallbackToFile("index.html").AllowAnonymous();
+app.MapFallbackToFile("/index.html", new StaticFileOptions
+    {
+        OnPrepareResponse = context => { context.Context.Response.Headers.Append("Cache-Control", "no-cache"); }
+    })
+    .AllowAnonymous();
 
 app.Run();
