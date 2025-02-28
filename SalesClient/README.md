@@ -20,6 +20,12 @@
   - [Bootstrapping](#bootstrapping-1)
   - [Exchanging cookie for access token](#exchanging-cookie-for-access-token)
   - [Part 3 milestone: Test API access](#part-3-milestone--test-api-access)
+- [Part 4 - Refreshing the token](#part-4---refreshing-the-token)
+  - [Dependencies](#dependencies)
+  - [Create a Token Handler](#create-a-token-handler)
+  - [Add offline access scope](#add-offline-access-scope)
+  - [Modify Yarp request transform](#modify-yarp-request-transform)
+  - [Part 4 milestone: Test refresh token](#part-4-milestone--test-refresh-token)
 - [Appendix](#appendix)
   - [Debugging .NET with Fiddler](#debugging-net-with-fiddler)
     - [HTTPS](#https)
@@ -31,7 +37,7 @@
 
 This part of the course will guide you through how you can create a secure client using C# and dotnet 8. We use the OAuth2 and OpenID Connect standards and the backend for frontend (BFF) pattern.
 
-The content is divided into three parts. Step one two will take more time to complete than step two and three.
+The content is divided into four parts. Step one is by far the most work intensive
 
 # Part 0
 
@@ -545,6 +551,92 @@ Debugging tips:
 
 - Set breakpoint inside `AddRequestTransform` and inspect the access token using https://jwt.io
 - Compare with [solution](Server.3-accessing-remote-api)
+
+# Part 4 - Refreshing the token
+
+The access token is configured to expire in 60 seconds. Currently the users will have to log in and out to get a new access token. Let's start using refresh tokens to improve the user experience.
+
+## Dependencies
+
+We will use Duende Software's open source token management package. Most of Duende is licenced, as of 27.02.2025 the Automatic token management packaged is released under the Apache 2.0 license. Keep in mind that this can change.
+
+Install the following dependencies using Nuget
+
+- Duende.AccessTokenManagement.OpenIdConnect
+
+## Create a Token Handler
+
+Start with creating a token handler that uses Duende's `OpenIdConnectUserAccessTokenHandler` to fetch tokens.
+
+```csharp
+public class AppTokenHandler(
+    IDPoPProofService dPoPProofService,
+    IDPoPNonceStore dPoPNonceStore,
+    IUserAccessor userAccessor,
+    IUserTokenManagementService userTokenManagement,
+    ILogger<OpenIdConnectClientAccessTokenHandler> logger,
+    UserTokenRequestParameters? parameters = null)
+    : OpenIdConnectUserAccessTokenHandler(dPoPProofService, dPoPNonceStore, userAccessor, userTokenManagement, logger, parameters)
+{
+    public new Task<ClientCredentialsToken> GetAccessTokenAsync(CancellationToken cancellationToken = default)
+    {
+        return base.GetAccessTokenAsync(false, cancellationToken);
+    }
+}
+```
+
+Add the following registrations to `Program.cs`
+
+```csharp
+builder.Services.AddOpenIdConnectAccessTokenManagement();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddTransient<OpenIdConnectUserAccessTokenHandler>();
+builder.Services.AddTransient<AppTokenHandler>();
+```
+
+The `OpenIdConnectUserAccessTokenHandler` from Duenede taks care of token management by inspecting the expiration of the access token. If the access token is expierer it uses the refresh token to aquire a new access token.
+
+## Add offline access scope
+
+OpenID Connect has a scope named `offline_access`. This has to be requested by the application to enable refresh tokens
+
+```csharp
+options.Scope.Add("offline_access");
+```
+
+## Modify Yarp request transform
+
+Modify the request transformation from step 3 to get tokens using the new `AppTokenHandler` instead of getting it directly from the http context.
+
+Use `var tokenHandler = transformContext.HttpContext.RequestServices.GetRequiredService<AppTokenHandler>();` to get the token handler.
+
+<details>
+<summary><b>Spoiler (Full code)</b></summary>
+<p>
+
+```csharp
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .AddTransforms(builderContext =>
+    {
+        builderContext.AddRequestTransform(async transformContext =>
+        {
+            var tokenHandler = transformContext.HttpContext.RequestServices.GetRequiredService<AppTokenHandler>();
+            var accessToken = (await tokenHandler.GetAccessTokenAsync()).AccessToken;
+            if (accessToken != null)
+            {
+                transformContext.ProxyRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            }
+        });
+    });
+```
+
+</p>
+</details>
+
+## Part 4 milestone: Test refresh token
+
+Test that we still have access to products in the web page after 60 secons have passed
 
 # Appendix
 
