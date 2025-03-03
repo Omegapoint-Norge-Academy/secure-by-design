@@ -21,11 +21,13 @@
   - [Exchanging cookie for access token](#exchanging-cookie-for-access-token)
   - [Part 3 milestone: Test API access](#part-3-milestone--test-api-access)
 - [Part 4 - Refreshing the token](#part-4---refreshing-the-token)
-  - [Dependencies](#dependencies)
   - [Create a Token Handler](#create-a-token-handler)
   - [Add offline access scope](#add-offline-access-scope)
   - [Modify Yarp request transform](#modify-yarp-request-transform)
   - [Part 4 milestone: Test refresh token](#part-4-milestone--test-refresh-token)
+- [Part 5 - Protect against CSRF](#part-5---protect-against-csrf)
+  - [Add CSRF protection](#add-csrf-protection)
+  - [Part 5 milestone: Test CSRF protection](#part-5-milestone--test-csrf-protection)
 - [Appendix](#appendix)
   - [Debugging .NET with Fiddler](#debugging-net-with-fiddler)
     - [HTTPS](#https)
@@ -594,7 +596,7 @@ builder.Services.AddTransient<OpenIdConnectUserAccessTokenHandler>();
 builder.Services.AddTransient<AppTokenHandler>();
 ```
 
-The `OpenIdConnectUserAccessTokenHandler` from Duenede taks care of token management by inspecting the expiration of the access token. If the access token is expierer it uses the refresh token to aquire a new access token.
+The `OpenIdConnectUserAccessTokenHandler` from Duenede takes care of token management by inspecting the expiration of the access token. If the access token is expired,  it uses the refresh token to acquire a new access token.
 
 ## Add offline access scope
 
@@ -637,6 +639,68 @@ builder.Services.AddReverseProxy()
 ## Part 4 milestone: Test refresh token
 
 Test that we still have access to products in the web page after 60 secons have passed
+
+# Part 5 - Protect against CSRF
+
+We already have a same site cookie, but that will not protect an application from CSRF from other subdomains. If an attacker can get hold of another subdomain in your organization, they can perform CSRF against your application.
+
+To add protection for this, we need ta add a custom header to every request going from the browser to the BFF. This custom header will ensure that preflight CORS is required, and only the same ORIGIN will be allowed to add custom headers. And that does not include subdomains. To ensure the header is not removed by an attack we validate its presence in the BFF.
+
+The key here is that our cookie gives SAME SITE protection for our requests, but we want to enhance this protection to SAME ORIGIN.
+
+> "Origin": An origin is a combination of a scheme (also known as the protocol, for example HTTP or HTTPS), a hostname, and a port (if specified). Given a URL of https://www.sub.example.com:443/test , the "origin" is https://www.sub.example.com:443
+
+> "Site": Top-level domains (TLDs) such as .com and .org are listed in the Root Zone Database. "Site" is a combination of the scheme, the TLD, and the part of the domain just before it (We call it TLD+1). Given a URL of https://www.sub.example.com:443/test, the "site" is https://example.com.
+
+## Add CSRF protection
+
+The client already have a custom header implemented with `CsrfTokenHandler.cs`, but we need to validate its presence in the BFF. We can do this by adding a middleware.
+
+The middleware should return `Bad Request` if the header `X-Csrf-Token` is missing. Remember to register the middleware in `Program.cs`. There are some endpoints that should not have this check applied. One of them are GET requests in general since they are not state changing. Also we need to make sure "/account/login", "/account/logout", "/signin-oidc" does not have this applied.
+
+<details>
+<summary><b>Spoiler (Full code)</b></summary>
+<p>
+
+```csharp
+public class CsrfTokenMiddleware(RequestDelegate next)
+{
+    public async Task Invoke(HttpContext context)
+    {
+        if (!context.Request.Headers.TryGetValue("X-Csrf-Token", out _) &&
+            !UrlIsWhitelisted(context) &&
+            context.Request.Method != HttpMethod.Get.Method)
+        {
+            var response = context.Response;
+            response.StatusCode = (int)HttpStatusCode.BadGateway;
+            response.ContentType = "text/plain";
+
+            await using var writer = new StreamWriter(response.Body);
+            await writer.WriteAsync("CSRF");
+
+            return;
+        }
+
+        await next(context);
+    }
+
+    private static bool UrlIsWhitelisted(HttpContext context)
+    {
+        string[] whiteListedUrls = ["/account/login", "/account/logout", "/signin-oidc"];
+        return whiteListedUrls.Any(url => context.Request.Path.Equals(url));
+    }
+}
+
+// In program.cs
+app.UseMiddleware<CsrfTokenMiddleware>();
+```
+
+</p>
+</details>
+
+## Part 5 milestone: Test CSRF protection
+
+We can test the validation by removing `.AddHttpMessageHandler<CsrfTokenHandler>()` from `Program.cs` in the Client project. When no header is added, our requests should fail.
 
 # Appendix
 
