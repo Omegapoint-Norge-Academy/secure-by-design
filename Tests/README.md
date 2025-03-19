@@ -3,16 +3,16 @@
 - [Workshop Guide: Testing](#workshop-guide-testing)
 - [Introduction](#introduction)
   - [Security Requirements](#security-requirements)
-- [Testing Part 1 - Unit Tests](#testing-part-1---unit-tests)
+- [Part 1 - Unit Tests](#part-1---unit-tests)
   - [Step 0](#step-0)
   - [Step 1 - ProductId Tests](#step-1---productid-tests)
   - [Step 2 - ProductService Tests](#step-2---productservice-tests)
   - [Step 3 - ProductController Tests](#step-3---productcontroller-tests)
-- [Testing Part 2 - Integration Tests](#testing-part-2---integration-tests)
-    - [Step 0 - Add client-secrets to Test Config](#step-0---add-client-secrets-to-test-config)
+- [Part 2 - Integration Tests](#part-2---integration-tests)
+  - [Step 0 - Add client-secrets to Test Config](#step-0---add-client-secrets-to-test-config)
   - [Step 1 - BaseTests class and Authenticating with the API](#step-1---basetests-class-and-authenticating-with-the-api)
   - [Step 2 - Product Tests](#step-2---product-tests)
-- [Step ∞ - Create more tests](#step----create-more-tests)
+- [Part 3 (optional) - Create more tests](#part-3-optional---create-more-tests)
 
 # Introduction
 
@@ -22,7 +22,6 @@ In this test project we will implement unit tests and integration tests. These a
 The unit tests, located in the `./Unit`-folder will test the logic of individual units/methods within the application. In order to properly test only one unit at a time, dependencies should be mocked. Put simply: When we are testing a method, we only want to test the code within that method. Therefore, if that method relies on other parts of our codebase, we will replace those dependencies with dummies using a mocking library.
 
 The integration tests, located in the `./System`-folder will test how units work with each other. In this workshop, we will focus these tests around the security in the API controllers and their integration with the underlying data services. More specifically, we can test this by sending various requests to the API and checking what data is available to us with different levels of authentication.
-
 
 ## Security Requirements
 
@@ -45,10 +44,9 @@ To address this issue, we could specify our requirement as:
 This sounds easy and completely obvious, but teams often fail to identify the test cases needed to avoid vulnerabilities. So how do we verify that users are ___only___ able to access the resource they absolutely need? A common practice is to add negative test cases such as:
 - Regular users should _not_ be able to access API3.
 
-This ensures that regular users are only able to access API1 and API2, and similar test cases should be applied for the other user types. 
+This ensures that regular users are only able to access API1 and API2. Similar test cases should be applied for the other user types. 
 
-
-# Testing Part 1 - Unit Tests
+# Part 1 - Unit Tests
 
 First we will create unit tests for the application, ensuring that each individual component of our Web API works as intended.
 
@@ -56,9 +54,13 @@ First we will create unit tests for the application, ensuring that each individu
 
 The test project is located in the `Tests`-folder and is named `Tests.0-starting-point`. You can start by running the tests in this project by executing `dotnet test` in the CLI from within the `Tests/0-starting-point/`. A fully implemented solution is available in `Tests/completed/` if you are stuck.
 
-For each of the steps below, empty test methods are provided. To better describe what is being tested in each method,the test methods are named using the naming pattern show below:  
-`public void NameOfTheMethodWeAreTesting_WhatShouldHappen_Scenario()`
+For each of the steps below, empty test methods are provided. To better describe what is being tested in each method,the test methods are named using the following naming pattern:
 
+    public void NameOfTheMethodWeAreTesting_WhatShouldHappen_Scenario()
+
+For example:  
+
+    public async Task GetById_ShouldReturn404_WhenNotFound()
 
 ## Step 1 - ProductId Tests
 
@@ -117,19 +119,17 @@ Finally we will test the methods in the ProductController class. Again, since th
 [__Spoiler (full code)__](./completed/Unit/ProductsControllerTests.cs)
 
 
-# Testing Part 2 - Integration Tests
+# Part 2 - Integration Tests
 
 To check that the inidividual parts of our system is working correctly when interacting with each other, we will create some integration tests in addition to the unit tests. 
 
 The integration tests are located in `Tests/0-starting-point/System/`.
 
-### Step 0 - Add client-secrets to Test Config
+## Step 0 - Add client-secrets to Test Config
 
 It is important to add the client secrets to `Tests/0-starting-point/testsettings.json`, otherwise the integration tests will not work.
 
-The secrets can be fount at [bit.ly/riverty-secrets](https://bit.ly/riverty-secrets)
-
-
+The secrets can be obtained by asking your workshop instructor.
 
 ## Step 1 - BaseTests class and Authenticating with the API
 
@@ -155,6 +155,6 @@ Write tests for the product API testing the `/api/product/{id}` endpoint to rece
 
 [__Spoiler (full code)__](./completed/System/ProductTests.cs)
 
-# Step ∞ - Create more tests
+# Part 3 (optional) - Create more tests
 
 Congratulations! You have now finished the main part of this testing workshop. Because different parts of this application contained similar logic, not all parts were included in this testing workshop. Feel free to continue creating more tests for the remaining parts of the application. However, these tests will be quite similar to the ones you have already created.
