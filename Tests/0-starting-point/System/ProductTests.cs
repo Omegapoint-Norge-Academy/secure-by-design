@@ -1,23 +1,27 @@
-﻿namespace Tests.System;
+﻿using Xunit.Abstractions;
 
-[TestFixture]
-public class ProductTests : BaseTests
+namespace Tests.System;
+
+public class ProductTests(ITestOutputHelper testOutput) : BaseTests(testOutput)
 {
-    [Test]
+    [Fact]
     public async Task GetById_ShouldReturn401_WhenAnonymous()
     {
         // Implement this test
+        Assert.Fail();
     }
 
-    [Test]
+    [Fact]
     public async Task GetProductById_ShouldReturn403_WhenAuthorizedButHasWrongScope()
     {
         // Implement this test
+        Assert.Fail();
     }
 
-    [Test]
-    public async Task GetProductById_ShouldReturn200_WhenAuthorizedButHasCorrectScope()
+    [Fact]
+    public async Task GetProductById_ShouldReturn200_WhenAuthorizedAndHasCorrectScope()
     {
         // Implement this test
+        Assert.Fail();
     }
 }
