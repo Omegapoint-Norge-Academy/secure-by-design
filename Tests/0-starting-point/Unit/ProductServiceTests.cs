@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using SalesApi.Domain.DomainPrimitives;
 using SalesApi.Domain.Model;
 using SalesApi.Domain.Services;

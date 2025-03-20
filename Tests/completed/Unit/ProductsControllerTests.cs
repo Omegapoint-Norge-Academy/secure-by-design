@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Contracts;
 using Microsoft.AspNetCore.Mvc;
-using Moq;
+using NSubstitute;
 using SalesApi.Controllers;
 using SalesApi.Domain.DomainPrimitives;
 using SalesApi.Domain.Model;
@@ -17,18 +17,20 @@ public class ProductsControllerTests
     [Fact]
     public async Task GetById_ShouldReturn200_WhenAuthorized()
     {
-        var productService = Mock.Of<IProductService>();
+        var productService = Substitute.For<IProductService>();
         var productId = new ProductId("no1");
-        Mock.Get(productService)
-            .Setup(service => service.GetWith(It.IsAny<ProductId>()))
-            .ReturnsAsync((
-                ReadDataResult.Success,
-                new Product(
-                    productId,
-                    new ProductName("Product 1"),
-                    new Money(9m, "USD"),
-                    new MarketId("no"))
-            ));
+        productService
+            .GetWith(Arg.Any<ProductId>())
+            .Returns(
+                (
+                    ReadDataResult.Success,
+                    new Product(
+                        productId,
+                        new ProductName("Product 1"),
+                        new Money(9m, "USD"),
+                        new MarketId("no"))
+                )
+            );
         var controller = new ProductsController(productService, _mapper);
 
         var result = await controller.GetById(productId.ToString());
@@ -39,18 +41,20 @@ public class ProductsControllerTests
     [Fact]
     public async Task GetById_ShouldReturnProductDTO_WhenAuthorized()
     {
-        var productService = Mock.Of<IProductService>();
+        var productService = Substitute.For<IProductService>();
         var productId = new ProductId("no1");
-        Mock.Get(productService)
-            .Setup(service => service.GetWith(It.IsAny<ProductId>()))
-            .ReturnsAsync((
-                ReadDataResult.Success,
-                new Product(
-                    productId,
-                    new ProductName("Product 1"),
-                    new Money(9m, "USD"),
-                    new MarketId("no"))
-            ));
+        productService
+            .GetWith(Arg.Any<ProductId>())
+            .Returns(
+                (
+                    ReadDataResult.Success,
+                    new Product(
+                        productId,
+                        new ProductName("Product 1"),
+                        new Money(9m, "USD"),
+                        new MarketId("no"))
+                )
+            );
         var controller = new ProductsController(productService, _mapper);
 
         var result = await controller.GetById(productId.ToString());
@@ -66,10 +70,7 @@ public class ProductsControllerTests
     [InlineData("<script>")]
     public async Task GetById_ShouldReturn400_WhenInvalidId(string invalidId)
     {
-        var productService = Mock.Of<IProductService>();
-        Mock.Get(productService)
-            .Setup(service => service.GetWith(It.IsAny<ProductId>()))
-            .ReturnsAsync((ReadDataResult.NoAccessToData, null));
+        var productService = Substitute.For<IProductService>();
         var controller = new ProductsController(productService, _mapper);
 
         var result = await controller.GetById(invalidId);
@@ -81,10 +82,10 @@ public class ProductsControllerTests
     [Fact]
     public async Task GetById_ShouldReturn404_WhenNotFound()
     {
-        var productService = Mock.Of<IProductService>();
-        Mock.Get(productService)
-            .Setup(service => service.GetWith(It.IsAny<ProductId>()))
-            .ReturnsAsync((ReadDataResult.NotFound, null));
+        var productService = Substitute.For<IProductService>();
+        productService
+            .GetWith(Arg.Any<ProductId>())
+            .Returns((ReadDataResult.NotFound, null));
         var controller = new ProductsController(productService, _mapper);
 
         var result = await controller.GetById("no1");
@@ -96,10 +97,10 @@ public class ProductsControllerTests
     [Fact]
     public async Task GetById_ShouldReturn403_WhenCanNotRead()
     {
-        var productService = Mock.Of<IProductService>();
-        Mock.Get(productService)
-            .Setup(service => service.GetWith(It.IsAny<ProductId>()))
-            .ReturnsAsync((ReadDataResult.NoAccessToOperation, null));
+        var productService = Substitute.For<IProductService>();
+        productService
+            .GetWith(Arg.Any<ProductId>())
+            .Returns((ReadDataResult.NoAccessToOperation, null));
         var controller = new ProductsController(productService, _mapper);
 
         var result = await controller.GetById("no1");
@@ -111,10 +112,10 @@ public class ProductsControllerTests
     [Fact]
     public async Task GetById_ShouldReturn404_WhenNoAccessToData()
     {
-        var productService = Mock.Of<IProductService>();
-        Mock.Get(productService)
-            .Setup(service => service.GetWith(It.IsAny<ProductId>()))
-            .ReturnsAsync((ReadDataResult.NoAccessToData, null));
+        var productService = Substitute.For<IProductService>();
+        productService
+            .GetWith(Arg.Any<ProductId>())
+            .Returns((ReadDataResult.NoAccessToData, null));
         var controller = new ProductsController(productService, _mapper);
 
         var result = await controller.GetById("no1");
