@@ -75,11 +75,11 @@ Implement the three test methods defined in `ProductIdTests.cs`
 
 Moving upwards in terms of complexity, the next set of tests will focus on the ProductService class. As this class uses both the ProductRepository and the PermissionService classes, we will need to mock these dependencies.
 
-This is easily achieved using third-party mocking libraries such as Moq. When using Moq, we can create mocks of the ProductRepository and the PermissionService by using their respective interfaces:
+This is easily achieved using a third-party mocking library such as NSubstitute or FakeItEasy. In this workshop we will be using NSubstitute. When using NSubstitute, we can create 'substitutes' (i.e. 'mocks') of the ProductRepository and the PermissionService by using their respective interfaces:
 
 ```csharp
-var productRepository = Mock.Of<IProductRepository>(MockBehavior.Strict);
-var permissionService = Mock.Of<IPermissionService>();
+var productRepository = Substitute.For<IProductRepository>();
+var permissionService = Substitute.For<IPermissionService>();
 ```
 
 These mocks can then be used to create an instance of ProductService like so:
@@ -88,16 +88,30 @@ These mocks can then be used to create an instance of ProductService like so:
 var productService = new ProductService(productRepository, permissionService);
 ```
 
-To specify return values for properties or method calls for the mocked dependencies, we can use the setup functionality within Moq:
+To specify return values for properties or method calls for the mocked dependencies, we can do so by utilising the `Returns`-extension method accessible through the substitute:
 
+For properties and expression-bodied members we can use .Returns() directly:
 ```csharp
 // permissionService.CanReadProducts should return true
-Mock.Get(permissionService).SetupGet(service => service.CanReadProducts).Returns(true);
+permissionService
+    .CanReadProducts
+    .Returns(true);
+```
 
-// productRepository.GetBy(productId) should return a dummy product
-Mock.Get(productRepository)
-    .Setup(repo => repo.GetBy(productId))
-    .ReturnsAsync(
+For methods we have to specify the nature of the argument we are expecting:
+```csharp
+// permissionService.HasPermissionToMarket() should return false when the
+// argument given is a MarketId with an arbitrary value
+permissionService
+    .HasPermissionToMarket(Arg.Any<MarketId>())
+    .Returns(false);
+
+// productRepository.GetBy(productId) should return a dummy product when the
+// argument given is a ProductId with a specific value
+var productId = new ProductId("123abc");
+productRepository
+    .GetBy(Arg.Is(productId))
+    .Returns(
         new Product(
             productId,
             new ProductName("Product 1"),
