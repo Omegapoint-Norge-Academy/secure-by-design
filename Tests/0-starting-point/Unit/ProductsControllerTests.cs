@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Contracts;
 using Microsoft.AspNetCore.Mvc;
-using Moq;
+using NSubstitute;
 using SalesApi.Controllers;
 using SalesApi.Domain.DomainPrimitives;
 using SalesApi.Domain.Model;
@@ -28,7 +28,7 @@ public class ProductsControllerTests
         Assert.Fail();
     }
 
-    [Xunit.Theory]
+    [Theory]
     [InlineData("")]
     [InlineData("no spaces")]
     [InlineData("thisisanidthatistoolong")]

@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using SalesApi.Domain.DomainPrimitives;
 using SalesApi.Domain.Model;
 using SalesApi.Domain.Services;
@@ -11,8 +11,8 @@ public class ProductServiceTests
     [Fact]
     public async Task GetWith_ReturnsNoAccessToOperation_IfNoValidReadClaim()
     {
-        var productRepository = Mock.Of<IProductRepository>(MockBehavior.Strict);
-        var permissionService = Mock.Of<IPermissionService>();
+        var productRepository = Substitute.For<IProductRepository>();
+        var permissionService = Substitute.For<IPermissionService>();
         var productService = new ProductService(productRepository, permissionService);
         var productId = new ProductId("1jf3jlk2");
 
@@ -25,9 +25,11 @@ public class ProductServiceTests
     [Fact]
     public async Task GetWith_ReturnsNotFound_IfValidClaimButNotExisting()
     {
-        var productRepository = Mock.Of<IProductRepository>();
-        var permissionService = Mock.Of<IPermissionService>();
-        Mock.Get(permissionService).SetupGet(service => service.CanReadProducts).Returns(true);
+        var productRepository = Substitute.For<IProductRepository>();
+        var permissionService = Substitute.For<IPermissionService>();
+        permissionService
+            .CanReadProducts
+            .Returns(true);
         var productService = new ProductService(productRepository, permissionService);
         var productId = new ProductId("notfound");
 
@@ -40,12 +42,13 @@ public class ProductServiceTests
     [Fact]
     public async Task GetWith_ReturnsNoAccessToData_IfNotValidMarket()
     {
-        var productRepository = Mock.Of<IProductRepository>();
-        var permissionService = Mock.Of<IPermissionService>();
+        var productRepository = Substitute.For<IProductRepository>();
+        var permissionService = Substitute.For<IPermissionService>();
         var productId = new ProductId("1jf3jlk2");
-        Mock.Get(productRepository)
-            .Setup(repo => repo.GetBy(productId))
-            .ReturnsAsync(
+        var marketId = new MarketId("se");
+        productRepository
+            .GetBy(Arg.Is(productId))
+            .Returns(
                 new Product(
                     productId,
                     new ProductName("Product 1"),
@@ -53,8 +56,8 @@ public class ProductServiceTests
                     new MarketId("no")
                 )
             );
-        Mock.Get(permissionService).SetupGet(service => service.CanReadProducts).Returns(true);
-        Mock.Get(permissionService).Setup(service => service.HasPermissionToMarket(new MarketId("se"))).Returns(false);
+        permissionService.CanReadProducts.Returns(true);
+        permissionService.HasPermissionToMarket(Arg.Is(marketId)).Returns(false);
         var productService = new ProductService(productRepository, permissionService);
 
         var (result, product) = await productService.GetWith(productId);
@@ -66,12 +69,12 @@ public class ProductServiceTests
     [Fact]
     public async Task GetWith_ReturnsOk_IfValidClaims()
     {
-        var productRepository = Mock.Of<IProductRepository>();
-        var permissionService = Mock.Of<IPermissionService>();
+        var productRepository = Substitute.For<IProductRepository>();
+        var permissionService = Substitute.For<IPermissionService>();
         var productId = new ProductId("1jf3jlk2");
-        Mock.Get(productRepository)
-            .Setup(repo => repo.GetBy(productId))
-            .ReturnsAsync(
+        productRepository
+            .GetBy(Arg.Is(productId))
+            .Returns(
                 new Product(
                     productId,
                     new ProductName("Product 1"),
@@ -79,8 +82,8 @@ public class ProductServiceTests
                     new MarketId("no")
                 )
             );
-        Mock.Get(permissionService).SetupGet(service => service.CanReadProducts).Returns(true);
-        Mock.Get(permissionService).Setup(service => service.HasPermissionToMarket(new MarketId("no"))).Returns(true);
+        permissionService.CanReadProducts.Returns(true);
+        permissionService.HasPermissionToMarket(Arg.Is(new MarketId("no"))).Returns(true);
         var productService = new ProductService(productRepository, permissionService);
 
         var (result, product) = await productService.GetWith(productId);
