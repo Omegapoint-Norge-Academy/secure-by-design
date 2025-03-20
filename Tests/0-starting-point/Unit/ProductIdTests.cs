@@ -1,28 +1,32 @@
-namespace Tests;
+namespace Tests.Unit;
 
-[TestFixture]
 public class ProductIdTests
 {
+    // Each line in the given file is a test case, and the test method runs once for each line in the file.
+    public static TheoryData<string> InjectionStrings => new(File.ReadAllLines("blns-injection.txt").AsEnumerable());
 
-    // Each line in the given file is a test case
-    public static string[] InjectionStrings => File.ReadAllLines("blns-injection.txt");
-    [TestCaseSource(nameof(InjectionStrings))]
+    [Theory]
+    [MemberData(nameof(InjectionStrings))]
     public void Constructor_Should_Reject_InvalidData(string injectionString)
     {
         // Implement this test
+        Assert.Fail();
     }
 
-    [Test]
+    [Fact]
     public void Constructor_Should_Reject_EmptyData()
     {
         // Implement this test
+        Assert.Fail();
     }
 
-    [TestCase("14asd")]
-    [TestCase("qweqweqwe")]
-    [TestCase("1")]
+    [Theory]
+    [InlineData("14asd")]
+    [InlineData("qweqweqwe")]
+    [InlineData("1")]
     public void Constructor_Accept_ValidData(string validString)
     {
         // Implement this test
+        Assert.Fail();
     }
 }

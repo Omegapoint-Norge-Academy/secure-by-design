@@ -1,29 +1,38 @@
-namespace Tests;
+using Moq;
+using SalesApi.Domain.DomainPrimitives;
+using SalesApi.Domain.Model;
+using SalesApi.Domain.Services;
+using SalesApi.Infrastructure;
 
-[TestFixture]
+namespace Tests.Unit;
+
 public class ProductServiceTests
 {
-    [Test]
+    [Fact]
     public async Task GetWith_ReturnsNoAccessToOperation_IfNoValidReadClaim()
     {
         // Implement this test
+        Assert.Fail();
     }
 
-    [Test]
+    [Fact]
     public async Task GetWith_ReturnsNotFound_IfValidClaimButNotExisting()
     {
         // Implement this test
+        Assert.Fail();
     }
 
-    [Test]
+    [Fact]
     public async Task GetWith_ReturnsNoAccessToData_IfNotValidMarket()
     {
         // Implement this test
+        Assert.Fail();
     }
 
-    [Test]
+    [Fact]
     public async Task GetWith_ReturnsOk_IfValidClaims()
     {
         // Implement this test
+        Assert.Fail();
     }
 }

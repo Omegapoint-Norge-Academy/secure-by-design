@@ -20,6 +20,14 @@
   - [Bootstrapping](#bootstrapping-1)
   - [Exchanging cookie for access token](#exchanging-cookie-for-access-token)
   - [Part 3 milestone: Test API access](#part-3-milestone--test-api-access)
+- [Part 4 - Refreshing the token](#part-4---refreshing-the-token)
+  - [Create a Token Handler](#create-a-token-handler)
+  - [Add offline access scope](#add-offline-access-scope)
+  - [Modify Yarp request transform](#modify-yarp-request-transform)
+  - [Part 4 milestone: Test refresh token](#part-4-milestone--test-refresh-token)
+- [Part 5 - Protect against CSRF](#part-5---protect-against-csrf)
+  - [Add CSRF protection](#add-csrf-protection)
+  - [Part 5 milestone: Test CSRF protection](#part-5-milestone--test-csrf-protection)
 - [Appendix](#appendix)
   - [Debugging .NET with Fiddler](#debugging-net-with-fiddler)
     - [HTTPS](#https)
@@ -31,7 +39,7 @@
 
 This part of the course will guide you through how you can create a secure client using C# and dotnet 8. We use the OAuth2 and OpenID Connect standards and the backend for frontend (BFF) pattern.
 
-The content is divided into three parts. Step one two will take more time to complete than step two and three.
+The content is divided into four parts. Step one is by far the most work intensive
 
 # Part 0
 
@@ -545,6 +553,154 @@ Debugging tips:
 
 - Set breakpoint inside `AddRequestTransform` and inspect the access token using https://jwt.io
 - Compare with [solution](Server.3-accessing-remote-api)
+
+# Part 4 - Refreshing the token
+
+The access token is configured to expire in 60 seconds. Currently the users will have to log in and out to get a new access token. Let's start using refresh tokens to improve the user experience.
+
+## Dependencies
+
+We will use Duende Software's open source token management package. Most of Duende is licenced, as of 27.02.2025 the Automatic token management packaged is released under the Apache 2.0 license. Keep in mind that this can change.
+
+Install the following dependencies using Nuget
+
+- Duende.AccessTokenManagement.OpenIdConnect
+
+## Create a Token Handler
+
+Start with creating a token handler that uses Duende's `OpenIdConnectUserAccessTokenHandler` to fetch tokens.
+
+```csharp
+public class AppTokenHandler(
+    IDPoPProofService dPoPProofService,
+    IDPoPNonceStore dPoPNonceStore,
+    IUserAccessor userAccessor,
+    IUserTokenManagementService userTokenManagement,
+    ILogger<OpenIdConnectClientAccessTokenHandler> logger,
+    UserTokenRequestParameters? parameters = null)
+    : OpenIdConnectUserAccessTokenHandler(dPoPProofService, dPoPNonceStore, userAccessor, userTokenManagement, logger, parameters)
+{
+    public new Task<ClientCredentialsToken> GetAccessTokenAsync(CancellationToken cancellationToken = default)
+    {
+        return base.GetAccessTokenAsync(false, cancellationToken);
+    }
+}
+```
+
+Add the following registrations to `Program.cs`
+
+```csharp
+builder.Services.AddOpenIdConnectAccessTokenManagement();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddTransient<OpenIdConnectUserAccessTokenHandler>();
+builder.Services.AddTransient<AppTokenHandler>();
+```
+
+The `OpenIdConnectUserAccessTokenHandler` from Duenede takes care of token management by inspecting the expiration of the access token. If the access token is expired,  it uses the refresh token to acquire a new access token.
+
+## Add offline access scope
+
+OpenID Connect has a scope named `offline_access`. This has to be requested by the application to enable refresh tokens
+
+```csharp
+options.Scope.Add("offline_access");
+```
+
+## Modify Yarp request transform
+
+Modify the request transformation from step 3 to get tokens using the new `AppTokenHandler` instead of getting it directly from the http context.
+
+Use `var tokenHandler = transformContext.HttpContext.RequestServices.GetRequiredService<AppTokenHandler>();` to get the token handler.
+
+<details>
+<summary><b>Spoiler (Full code)</b></summary>
+<p>
+
+```csharp
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .AddTransforms(builderContext =>
+    {
+        builderContext.AddRequestTransform(async transformContext =>
+        {
+            var tokenHandler = transformContext.HttpContext.RequestServices.GetRequiredService<AppTokenHandler>();
+            var accessToken = (await tokenHandler.GetAccessTokenAsync()).AccessToken;
+            if (accessToken != null)
+            {
+                transformContext.ProxyRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            }
+        });
+    });
+```
+
+</p>
+</details>
+
+## Part 4 milestone: Test refresh token
+
+Test that we still have access to products in the web page after 60 secons have passed
+
+# Part 5 - Protect against CSRF
+
+We already have a same site cookie, but that will not protect an application from CSRF from other subdomains. If an attacker can get hold of another subdomain in your organization, they can perform CSRF against your application.
+
+To add protection for this, we need ta add a custom header to every request going from the browser to the BFF. This custom header will ensure that preflight CORS is required, and only the same ORIGIN will be allowed to add custom headers. And that does not include subdomains. To ensure the header is not removed by an attack we validate its presence in the BFF.
+
+The key here is that our cookie gives SAME SITE protection for our requests, but we want to enhance this protection to SAME ORIGIN.
+
+> "Origin": An origin is a combination of a scheme (also known as the protocol, for example HTTP or HTTPS), a hostname, and a port (if specified). Given a URL of https://www.sub.example.com:443/test , the "origin" is https://www.sub.example.com:443
+
+> "Site": Top-level domains (TLDs) such as .com and .org are listed in the Root Zone Database. "Site" is a combination of the scheme, the TLD, and the part of the domain just before it (We call it TLD+1). Given a URL of https://www.sub.example.com:443/test, the "site" is https://example.com.
+
+## Add CSRF protection
+
+The client already have a custom header implemented with `CsrfTokenHandler.cs`, but we need to validate its presence in the BFF. We can do this by adding a middleware.
+
+The middleware should return `Bad Request` if the header `X-Csrf-Token` is missing. Remember to register the middleware in `Program.cs`. There are some endpoints that should not have this check applied. One of them are GET requests in general since they are not state changing. Also we need to make sure "/account/login", "/account/logout", "/signin-oidc" does not have this applied.
+
+<details>
+<summary><b>Spoiler (Full code)</b></summary>
+<p>
+
+```csharp
+public class CsrfTokenMiddleware(RequestDelegate next)
+{
+    public async Task Invoke(HttpContext context)
+    {
+        if (!context.Request.Headers.TryGetValue("X-Csrf-Token", out _) &&
+            !UrlIsWhitelisted(context) &&
+            context.Request.Method != HttpMethod.Get.Method)
+        {
+            var response = context.Response;
+            response.StatusCode = (int)HttpStatusCode.BadGateway;
+            response.ContentType = "text/plain";
+
+            await using var writer = new StreamWriter(response.Body);
+            await writer.WriteAsync("CSRF");
+
+            return;
+        }
+
+        await next(context);
+    }
+
+    private static bool UrlIsWhitelisted(HttpContext context)
+    {
+        string[] whiteListedUrls = ["/account/login", "/account/logout", "/signin-oidc"];
+        return whiteListedUrls.Any(url => context.Request.Path.Equals(url));
+    }
+}
+
+// In program.cs
+app.UseMiddleware<CsrfTokenMiddleware>();
+```
+
+</p>
+</details>
+
+## Part 5 milestone: Test CSRF protection
+
+We can test the validation by removing `.AddHttpMessageHandler<CsrfTokenHandler>()` from `Program.cs` in the Client project. When no header is added, our requests should fail.
 
 # Appendix
 

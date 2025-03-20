@@ -26,9 +26,7 @@ Congrats, you are now done. If you have time left, feel free to improve your app
 
 Suggested improvements:
 
-- Add anti-forgery token for protection against CSRF from sub domains.
 - Add Content Security Policy (CSP) for protection against cross-site scripting (XSS)
 - Implement a server side session store by implementing the `ITicketStore` interface. Can be configured in cookie options.
-- Implement automatic refresh of tokens
 
 For additional suggestions for improvements, ask your course teachers.

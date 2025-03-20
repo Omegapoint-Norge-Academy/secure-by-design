@@ -1,6 +1,5 @@
 using Blazored.Modal;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SalesClient.Client;
@@ -17,13 +16,16 @@ builder.Services.AddAuthorizationCore(config =>
 builder.Services.TryAddSingleton<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.TryAddSingleton(sp => (CustomAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 builder.Services.AddTransient<AuthorizedHandler>();
+builder.Services.AddTransient<CsrfTokenHandler>();
 
 builder.Services.AddSingleton<IRedirectService, RedirectService>();
 builder.Services.AddSingleton<IAuthenticationService, AuthenticationService>();
 
-builder.Services.AddHttpClient<IUserInfoService, UserInfoService>(x => x.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress));
+builder.Services.AddHttpClient<IUserInfoService, UserInfoService>(x => x.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddHttpMessageHandler<CsrfTokenHandler>();
 builder.Services.AddHttpClient<IProductService, ProductService>(x => x.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
-    .AddHttpMessageHandler<AuthorizedHandler>();
+    .AddHttpMessageHandler<AuthorizedHandler>()
+    .AddHttpMessageHandler<CsrfTokenHandler>();
 
 builder.Services.AddBlazoredModal();
 

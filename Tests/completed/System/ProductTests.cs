@@ -1,34 +1,34 @@
 ﻿using System.Net;
+using Xunit.Abstractions;
 
 namespace Tests.System;
 
-[TestFixture]
-public class ProductTests : BaseTests
+public class ProductTests(ITestOutputHelper testOutput) : BaseTests(testOutput)
 {
-    [Test]
+    [Fact]
     public async Task GetById_ShouldReturn401_WhenAnonymous()
     {
         var response = await _client.GetAsync("api/product/123GQWE");
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Test]
+    [Fact]
     public async Task GetProductById_ShouldReturn403_WhenAuthorizedButHasWrongScope()
     {
         await AuthorizeHttpClient(ProductScope.Write);
         // Use a token with wrong scope, GetProductById requires products.read
         var response = await _client.GetAsync("/api/product/123GQWE");
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    [Test]
-    public async Task GetProductById_ShouldReturn200_WhenAuthorizedButHasCorrectScope()
+    [Fact]
+    public async Task GetProductById_ShouldReturn200_WhenAuthorizedAndHasCorrectScope()
     {
         await AuthorizeHttpClient(ProductScope.Read);
         var response = await _client.GetAsync("/api/product/123GQWE");
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }
