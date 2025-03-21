@@ -68,6 +68,32 @@ Our first set of unit tests will test the ProductId domain primitive, which is r
 
 Implement the three test methods defined in `ProductIdTests.cs`
 
+<details>
+<summary><b>Hints (Test methods 1 and 2)</b></summary>
+<p>
+
+- The first test method (`Constructor_Should_Reject_InvalidData`) runs once for each line in the file `blns-injection.txt`.
+
+- What do you expect the constructor in the `ProductId`-class to do when it is given an invalid product ID?
+
+- In Xunit, you can verify that a method throws a specific exception using `Assert.Throws<ExceptionType>(() => MethodToTest())`.
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 3)</b></summary>
+<p>
+
+- The third test method runs once for each input defined by `InlineData`.
+
+- After creating a new ProductId, what do you expect the value of that productId to be?
+
+- In Xunit, you can verify that two values are equal using `Assert.Equal(actualValue, expectedValue)`.
+
+</p>
+</details>
+
 [__Spoiler (full code)__](./completed/Unit/ProductIdTests.cs)
 
 
@@ -123,6 +149,66 @@ productRepository
 
 Complete the test methods defined in `ProductServiceTests.cs`.
 
+<details>
+<summary><b>Hints (Test method 1)</b></summary>
+<p>
+
+- The first test method should run the `GetWith`-method on an instance of `ProductService`:
+
+- The return value from running this method should be a `(ReadDataResult, Product?)`-tuple.
+
+- The `ReadDataResult` should be `NoAccessToOperation` and the `Product` should be `null`.
+
+- You can verify a value is null with Xunit using `Assert.Null(actualValue)`.
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 2)</b></summary>
+<p>
+
+- How do we set up the scenario `IfValidClaimButNotExisting`? (Meaning the user has a valid claim, but the requested product does not exist)
+
+- The mocked `PermissionService` should return true for the property `CanReadProducts`.
+
+- The `ReadDataResult` should be `NotFound` and the `Product` should be `null`.
+
+- You can verify a value is null with Xunit using `Assert.Null(actualValue)`.
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 3)</b></summary>
+<p>
+
+- How do we set up the scenario `IfNotValidMarket`? (Meaning the user has a valid claim, but the user has no access to the requested market)
+
+- The mocked `PermissionService` should return true for the property `CanReadProducts`.
+
+- The mocked `PermissionService` should return false for calls to the method `HasPermissionToMarket`.
+
+- The `ReadDataResult` should be `NoAccessToData` and the `Product` should be `null`.
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 4)</b></summary>
+<p>
+
+- How do we set up the scenario `IfValidClaim`? (Meaning the user has a valid claim and the user has access to the requested market)
+
+- The mocked `PermissionService` should return true for the property `CanReadProducts`.
+
+- The mocked `PermissionService` should return true for calls to the method `HasPermissionToMarket`.
+
+- The `ReadDataResult` should be `Success` and the `Product` should not be `null`.
+
+</p>
+</details>
+
 [__Spoiler (full code)__](./completed/Unit/ProductServiceTests.cs)
 
 
@@ -130,12 +216,99 @@ Complete the test methods defined in `ProductServiceTests.cs`.
 
 Finally we will test the methods in the ProductController class. Again, since these are unit tests, we will need to mock all dependencies to the ProductController class. In this case we will just need to create a mock that implements the `IProductService` interface, and define some return value for the methods we are using in that interface.
 
-[__Spoiler (full code)__](./completed/Unit/ProductsControllerTests.cs)
+<details>
+<summary><b>Hints (Test method 1)</b></summary>
+<p>
 
+- This test method should call the controller and verify that it returns a 200 OK when the `ProductService` is properly mocked.
+
+- How do we set up the mocked `ProductService` scenario `WhenAuthorized`? (Meaning the `ProductService` should return a valid object when called)
+
+- The mocked `PermissionService` should return a `ReadDataResult.Success` and valid `Product` when called by the controller.
+
+- The result from calling the controller should be an `OkObjectResult`.
+
+- In Xunit, you can verify that a value is of a specific type with `Assert.IsType<ExpectedType>(value)`
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 2)</b></summary>
+<p>
+
+- This test method should call the controller and verify the returned object is an instance of `ProductDTO`.
+
+- The scenario in this test method is the same as in the first method.
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 3)</b></summary>
+<p>
+
+- This test method should call the controller and verify that it returns a 400 BadRequest when the `ProductService` is properly mocked.
+
+- What do you expect the controller to do when it receives an invalid `ProductId`?
+
+- The result type from calling the controller should be a `BadRequestObjectResult`.
+
+- The response body/value should be null.
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 4)</b></summary>
+<p>
+
+- This test method should call the controller and verify that it returns a 404 NotFound when the `ProductService` is properly mocked.
+
+- What should the mocked `ProductService` return when a productId is not found?
+
+- The result type from calling the controller should be a `NotFoundResult`.
+
+- The response body/value should be null.
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 5)</b></summary>
+<p>
+
+- This test method should call the controller and verify that it returns a 403 Forbidden when the `ProductService` is properly mocked.
+
+- What should the mocked `ProductService` return when a user does not have right claim for read access?
+
+- The result type from calling the controller should be a `ForbidResult`.
+
+- The response body/value should be null.
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 6)</b></summary>
+<p>
+
+- This test method should call the controller and verify that it returns a 404 NotFound when the `ProductService` is properly mocked.
+
+- What should the mocked `ProductService` return when the user does not have access to the requested product?
+
+- The result type from calling the controller should be a `NotFoundResult`.
+
+- The response body/value should be null.
+
+</p>
+</details>
+
+[__Spoiler (full code)__](./completed/Unit/ProductsControllerTests.cs)
 
 # Part 2 - Integration Tests
 
-To check that the inidividual parts of our system is working correctly when interacting with each other, we will create some integration tests in addition to the unit tests. 
+To check that the inidividual parts of our system is working correctly when interacting with each other, we will create some integration tests in addition to the unit tests. Here we will not be mocking dependencies, and instead be testing the system as a whole.
 
 The integration tests are located in `Tests/0-starting-point/System/`.
 
@@ -166,6 +339,43 @@ await AuthorizeHttpClient(ProductScope.Read);
 The `ProductTests` class in `ProductTests.cs` inherits from the `BaseTests` class which lets us easily use the HttpClient and authorize it for the tests that need authorization. 
 
 Write tests for the product API testing the `/api/product/{id}` endpoint to receive proper status codes given the different authorizations.
+
+<details>
+<summary><b>Hints (Test method 1)</b></summary>
+<p>
+
+- This test method should verify that when anonymous users (i.e. unauthorized users) call the API, they should receive a 401 Unauthorized response code.
+
+- To call the API, use the `_client` property from the base class: `await _client.GetAsync("api/product/<productId>")`
+
+- Did you remember to add the client secrets to the `testsettings.json`-file in the `0-starting-point` folder?
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 2)</b></summary>
+<p>
+
+- This test method should verify that when authorized users with the wrong scope call the API, they should receive a 403 Forbidden response code.
+
+- To authorize requests sent using `_client.GetAsync`, first do a call `await AuthorizeHttpClient(<scope>)` with the desired scope.
+
+- Running GET requests to fetch products from the API requires
+
+</p>
+</details>
+
+<details>
+<summary><b>Hints (Test method 3)</b></summary>
+<p>
+
+- This test method should verify that when authorized users with correct scope call the API, they should receive a 200 OK response code.
+
+- To authorize requests sent using `_client.GetAsync`, first do a call `await AuthorizeHttpClient(<scope>)` with the desired scope.
+
+</p>
+</details>
 
 [__Spoiler (full code)__](./completed/System/ProductTests.cs)
 
