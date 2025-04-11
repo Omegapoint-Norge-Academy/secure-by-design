@@ -10,7 +10,21 @@ The application has a same-site hosting setup. This means that the backend and f
 
 ### IdP
 
-We have setup a Idp instance using Auth0 which we will use throughout the workshop. You will get the details from the course instructors. This will be need both in the client/BFF and the API parts of the application.
+We have setup an Idp instance using Auth0 which we will use throughout the workshop. You will get the details from the course instructors. This will be need both in the client/BFF and the API parts of the application.
+
+## Requirements
+
+Before you begin, you will need to install a few dependencies.
+
+- [.NET 9](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+- A proper .NET IDE
+  - [Visual Studio](https://visualstudio.microsoft.com/downloads/)
+  - [Rider](https://www.jetbrains.com/rider/download/)
+  - [VS Code](https://code.visualstudio.com/download) with the .NET/C# extensions will also work, but this is generally not recommended if other options are available.
+- An API Client for testing the API
+  - VS Code with the [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension
+  - [Postman](https://www.postman.com/downloads/)
+  - Curl
 
 ## Workshop
 
