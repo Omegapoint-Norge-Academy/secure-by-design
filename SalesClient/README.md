@@ -1,5 +1,6 @@
 # Workshop guide - Secure Client
 
+- [Workshop guide - Secure Client](#workshop-guide---secure-client)
 - [Introduction](#introduction)
 - [Part 0](#part-0)
 - [Part 1 - Login and Logout](#part-1---login-and-logout)
@@ -12,22 +13,23 @@
       - [Default schemas](#default-schemas)
     - [Add Authorization](#add-authorization)
   - [Account controller](#account-controller)
-  - [Part 1 milestone: Test login](#part-1-milestone--test-login)
+  - [Part 1 milestone: Test login](#part-1-milestone-test-login)
 - [Part 2 - User context](#part-2---user-context)
   - [User controller](#user-controller)
-  - [Part 2 milestone: Test user context](#part-2-milestone--test-user-context)
+  - [Part 2 milestone: Test user context](#part-2-milestone-test-user-context)
 - [Part 3 - Accessing remote API](#part-3---accessing-remote-api)
   - [Bootstrapping](#bootstrapping-1)
   - [Exchanging cookie for access token](#exchanging-cookie-for-access-token)
-  - [Part 3 milestone: Test API access](#part-3-milestone--test-api-access)
+  - [Part 3 milestone: Test API access](#part-3-milestone-test-api-access)
 - [Part 4 - Refreshing the token](#part-4---refreshing-the-token)
+  - [Dependencies](#dependencies-1)
   - [Create a Token Handler](#create-a-token-handler)
   - [Add offline access scope](#add-offline-access-scope)
   - [Modify Yarp request transform](#modify-yarp-request-transform)
-  - [Part 4 milestone: Test refresh token](#part-4-milestone--test-refresh-token)
+  - [Part 4 milestone: Test refresh token](#part-4-milestone-test-refresh-token)
 - [Part 5 - Protect against CSRF](#part-5---protect-against-csrf)
   - [Add CSRF protection](#add-csrf-protection)
-  - [Part 5 milestone: Test CSRF protection](#part-5-milestone--test-csrf-protection)
+  - [Part 5 milestone: Test CSRF protection](#part-5-milestone-test-csrf-protection)
 - [Appendix](#appendix)
   - [Debugging .NET with Fiddler](#debugging-net-with-fiddler)
     - [HTTPS](#https)
@@ -37,7 +39,7 @@
 
 # Introduction
 
-This part of the course will guide you through how you can create a secure client using C# and dotnet 8. We use the OAuth2 and OpenID Connect standards and the backend for frontend (BFF) pattern.
+This part of the course will guide you through how you can create a secure client using C# and .NET 9. We use the OAuth2 and OpenID Connect standards and the backend for frontend (BFF) pattern.
 
 The content is divided into four parts. Step one is by far the most work intensive
 
@@ -596,7 +598,7 @@ builder.Services.AddTransient<OpenIdConnectUserAccessTokenHandler>();
 builder.Services.AddTransient<AppTokenHandler>();
 ```
 
-The `OpenIdConnectUserAccessTokenHandler` from Duenede takes care of token management by inspecting the expiration of the access token. If the access token is expired,  it uses the refresh token to acquire a new access token.
+The `OpenIdConnectUserAccessTokenHandler` from Duenede takes care of token management by inspecting the expiration of the access token. If the access token is expired, it uses the refresh token to acquire a new access token.
 
 ## Add offline access scope
 

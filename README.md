@@ -1,6 +1,6 @@
 # Intro
 
-This repo contains code and documentation for the "Secure by Design" and "Defence in Depth" workshop. It is divided in to three parts: [SalesClient](SalesClient), [SalesApi](SalesApi) and [Tests](Tests). Each of the directories has a separate README-file containing the workshop guides. For each step in the individual parts, there are sub directories containing a solution to the tasks given. If you didn't manage to complete an assignment, you can start the next one using the solution-directory for the previous step. When starting 'Step 2 - Token transformation' in the SalesApi part, you can use the '1-token-validation'-directory as a starting point.
+This repo contains code and documentation for the "Secure by Design" and "Defence in Depth" workshop. It is divided in to three parts: [SalesApi](SalesApi), [SalesClient](SalesClient) and [Tests](Tests). Each of the directories has a separate README-file containing the workshop guide for that part. For each step in the individual parts, there are sub directories containing a solution to the tasks given. If you didn't manage to complete an assignment, you can start the next one using the solution-directory for the previous step. For example, when starting 'Step 2 - Token transformation' in the SalesApi part, you can use the '1-token-validation'-directory as a starting point.
 
 ## Architecture
 
@@ -34,11 +34,11 @@ The workshop is divided into 3 main parts. Follow the links for the workshop gui
 - [**Part 2 - Testing**](./Tests)
 - [**Part 3 - Secure Client**](./SalesClient)
 
-## Workshop done
+## Further work
 
-Congrats, you are now done. If you have time left, feel free to improve your app.
+If you have completed all three parts above, you are now done. Congratulations! If you have time left, feel free to improve your app.
 
-Suggested improvements:
+Here are some suggested improvements:
 
 - Add Content Security Policy (CSP) for protection against cross-site scripting (XSS)
 - Implement a server side session store by implementing the `ITicketStore` interface. Can be configured in cookie options.

@@ -2,7 +2,7 @@
 
 - [Workshop guide - Secure API](#workshop-guide---secure-api)
 - [Introduction](#introduction)
-- [Step 0](#step-0)
+- [Initial setup](#initial-setup)
 - [Step 1 - Token validation](#step-1---token-validation)
   - [Add JWT bearer authentication](#add-jwt-bearer-authentication)
   - [Add authorization](#add-authorization)
@@ -18,16 +18,17 @@
   - [Domain primitives](#domain-primitives)
   - [Handling errors](#handling-errors)
   - [Handling permissions securely](#handling-permissions-securely)
-- [Workshop summary](#workshop-summary)
+- [Summary](#summary)
 
 # Introduction
 
-This part of the course will guide you through how you can create a secure web API using C# and dotnet 8. We base the model on principles of Zero Trust, Least Privilege, and design ideas from the book Secure by Design. The solution will be somewhat opinionated, the same level of security can of course be achieved with other styles and implementation choices. The model and concepts are general and you could easily implement them using other programming languages and frameworks. This workshop focuses on what you should do within the context of a web API and ignores all the things you should we have in front of your API in the form of infrastructure protection, e.g. a firewall, WAF, API gateway or similar.
+This part of the course will guide you through how you can create a secure web API using C# and .NET 9. We base the model on principles of Zero Trust, Least Privilege, and design ideas from the book Secure by Design. The solution will be somewhat opinionated, the same level of security can of course be achieved with other styles and implementation choices. The model and concepts are general and you could easily implement them using other programming languages and frameworks. This workshop focuses on what you should do within the context of a web API and ignores all the things you should we have in front of your API in the form of infrastructure protection, e.g. a firewall, WAF, API gateway or similar.
 
 To build a robust API we believe you have to implement a set of security mechanisms within you application, independent of framework and implementation details. This is not a complete list, as there are other things you should consider in addition. But if you have these main points covered you can be fairly assured that your system is secured against a lot of attack vectors.
+
 We will implement the following mechanisms step by step:
 
-- Validating that the access token in the request is correct
+- Validate that the access token in the request is correct
 - Transform the token into a permission model adapted to our domain
 - Validate that the data in the request is correct
 - Validate that the user has permissions to execute the operation
@@ -37,15 +38,20 @@ We will implement the following mechanisms step by step:
 
 In addition to these steps we will implement Secure by Design principles that will make the application more resilient.
 
-# Step 0
+# Initial setup
 
-Start by opening the `SalesApi.0-starting-point` project in your IDE of choice. Run the application either from the IDE or from the CLI using `dotnet run`. After starting the project test that the API responds. There is a [requests file](requests.http) you can use (e.g. by installing Rest Client extensions in VS Code). Alternatively use curl, postman or any other tool you are comfortable with. Issue a GET-request to `https://localhost:7094/api/product`. It should return a list of static products.
+Start by opening the `SalesApi.0-starting-point` project in your IDE of choice. Run the application either from the IDE or from the CLI using the `dotnet run` command.
+
+After starting the project, you should test that the API responds. There is a [requests file](requests.http) you can use (e.g. by installing Rest Client extensions in VS Code). Alternatively use curl, postman or any other tool you are comfortable with. Issue a GET-request to `https://localhost:7094/api/product`. It should return a list of static products.
+
+The `SalesAPI`-folder containes stepwise solutions where the number on each project folder indicates which step that folder is the solution of. For example, the folder named `2-token-transformation` contains the solution **after** implementing Step 2 in this guide. If you at any point become stuck or are unable to debug something, consider restarting the step you are currently on by coding from the folder with the solution to the steps you have already finished.
 
 # Step 1 - Token validation
 
-The first step to a secure API is adding JWT middleware. This is not something you should implement on your own, it should only be configuration. In dotnet you will use `AddAuthentication`, `AddJwtBearer` and `AddAuthorization` methods to register the middlewares needed and `UseAuthentication`+`UseAuthorization` to add them to the pipeline. The JWT middleware has secure defaults, with validation according to the JWT spec, you need to configure Authority and Audience to make it work correctly against the IdP. The config values are included in appsettings.json.
+The first step to a secure API is adding JWT middleware. This is not something you should implement on your own, it should only be configuration. In dotnet you will use `AddAuthentication`, `AddJwtBearer` and `AddAuthorization` methods to register the middlewares needed and `UseAuthentication`+`UseAuthorization` to add them to the pipeline. The JWT middleware has secure defaults, with validation according to the JWT spec, you need to configure Authority and Audience to make it work correctly against the IdP. The config values are included in `appsettings.json`.
 
 ## Add JWT bearer authentication
+
 Lets start by adding authentication. Add `AddAuthentication` and `AddJwtBearer` to your services in `Program.cs`.
 
 ```csharp
@@ -57,8 +63,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 ```
 
 Configure the JWT bearer options like this:
+
 - Bind the appsettings section `JwtBearerOptions` to the options with `builder.Configuration.Bind("JwtBearerOptions", options)`
-- We should always validate the type claim of a token. This is not done by default. The type claim might differ from IdP to IdP. The best is when the IdP not only specifies that the token is a JWT token, but also that it is an access token. This is done by a `typ` claim with value `at+jwt`. Validating this will make sure the that the token is an id-token or something else. Not all IdPs do this, and Auth0 is one of them. We get a `typ` claim with value `JWT`. We should validate that with: `options.TokenValidationParameters.ValidTypes = new[] { "JWT" };`
+- We should always validate the type claim of a token. This is not done by default. The type claim might differ from IdP to IdP. The best is when the IdP not only specifies that the token is a JWT token, but also that it is an access token. This is done by a `typ` claim with value `at+jwt`. Validating this will make sure the that the token is an id-token or something else. Not all IdPs do this, and Auth0 is unfortunately one of them. In this case, we get a `typ` claim with value `JWT`. We should validate that with: `options.TokenValidationParameters.ValidTypes = new[] { "JWT" };`
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -77,6 +84,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 </details>
 
 ## Add authorization
+
 We want to make sure that all our endpoints use our JWT bearer authentication. We do not want to rely on remembering to add the `[Authorize]` attribute to all controllers/endpoints. We want authentication to be opt-out rather than opt-in. This is done by adding authorization and configuring a default and fallback policy. In `Program.cs` add authorization:
 
 ```csharp
@@ -86,7 +94,7 @@ builder.Services.AddAuthorization(options =>
 });
 ```
 
-Build the policy using `AuthorizationPolicyBuilder`. Build it so that it requires an authenticated user and that the user is authenticated using the JWT bearer scheme. Set the `DefaultPolicy` and  `FallbackPolicy` options to the build policy.
+Build the policy using `AuthorizationPolicyBuilder`. Build it so that it requires an authenticated user and that the user is authenticated using the JWT bearer scheme. Set the `DefaultPolicy` and `FallbackPolicy` options to the build policy.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -109,6 +117,7 @@ builder.Services.AddAuthorization(options =>
 </details>
 
 ## Add middleware
+
 Add authorization and authentication middleware after `app.UseHttpsRedirection()` in `Program.cs`. The order of these middlewares matter. Remember that we need to know who the user is (authentication) before we determine what the user has access to (authorization).
 
 ```csharp
@@ -117,6 +126,7 @@ app.UseAuthorization();
 ```
 
 ## Verify token validation
+
 To test that it works you need to acquire a valid token. This can be done using the following request.
 
 ```
@@ -139,17 +149,19 @@ GET https://localhost:7094/api/product/234QWE
 Authorization: Bearer <insert token here>
 ```
 
-Also test that a request with no token responds with `401 Unauthorized`
+Also test that a request with no token responds with `401 Unauthorized`.
 
 # Step 2 – Transform the access token to permissions
 
-This step can be done either as a continuation of step 1 or the 1-token-validation project can be used as a starting point.
+This step can be done either as a continuation of step 1 or the project named `1-token-validation` can be used as a starting point.
 
 The purpose of this step is to transform the access token into local permissions and to add any additional permissions that the users might have that is not represented in the access token. This might be permissions stored in the system or a local IdP.
 
 In ASP.NET, we often implement this by using a claims transformation class. Create a new class named `ClaimsTransformation` in the `Infrastructure` folder of your project. Copy the below code to the class:
 
 ```csharp
+namespace SalesApi.Infrastructure;
+
 internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepository) : IClaimsTransformation
 {
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
@@ -186,6 +198,7 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
 Also register it in `Program.cs` for ASP.NET to pick it up: `builder.Services.AddSingleton<IClaimsTransformation, ClaimsTransformation>();`
 
 ## Transform to local permissions
+
 Lets implement the first TODO. We highly recommend prefixing the local permissions so that you can easily separate them from the standard OIDC and JWT standards claims. We choose the `urn:permissions` prefix for permissions. Note that representing permissions as .NET Claims may not be optimal, but it is commonly used. We will address this in the section “Secure by design”.
 
 In the code add the claim `urn:permissions:products:read` with value `true` if the claim `products.read` is present. You can use the `AddPermissionIfScope` method provided. Do the same for `urn:permissions:products:write` if the claim `products.write` is provided.
@@ -232,6 +245,7 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
 </details>
 
 ## Get market permission form IUserPermissionRepository
+
 We sell our products on different markets. Some products can belong to the Norwegian market, and some to the Swedish market etc. We want to add access control to this property. Imagine we have a user database that has these permissions. We have created a repository named `UserPermissionRepository` with an interface `IUserPermissionRepository` that represents this.
 
 Lets get the user id from the claims. This is represented by the `sub` claim. Use this id to get the market permissions for the current user: `await userPermissionRepository.GetUserMarketPermissions(sub)`. For each market returned by the repository, add a claim with name `urn:permissions:market` and the market as value.
@@ -256,7 +270,7 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
 
             var sub = principal.FindFirstValue("sub");
             var userPermission = await userPermissionRepository.GetUserMarketPermissions(sub);
-            foreach (var permission in userPermission) 
+            foreach (var permission in userPermission)
             {
                 identity.AddClaim(new Claim("urn:permissions:market", permission));
             }
@@ -287,6 +301,7 @@ internal class ClaimsTransformation(IUserPermissionRepository userPermissionRepo
 Before moving on, we want to emphasize the importance of striking the right balance between what the token contains and the permissions we need for access control. How we model identity and scopes are essential for how fine-grained our access control can be and how we can adapt as the system grows.
 
 # Step 3 - Validate data in the request
+
 All parts of the request are untrusted and need to be validated. For the endpoint in our controller, we have one parameter: the product identifier. In our case, the identifier is not an arbitrary string of any size! It can contain only letters and digits and be ten characters or less. If the input string does not follow those rules, we can immediately return a `400 Bad Request`. This input validation will make injection attacks a lot harder.
 
 Lets edit the `ProductController` to validate the request and return `400 Bad Request` if anything is not correct.
@@ -316,6 +331,7 @@ In our example, the parameter is of type string because it can contain digits an
 Selecting types like DateTime and int will reduce attack vectors significantly compared to a string, but we should still verify that the values meet our requirements. For example, it might not make sense to accept dates 100 years into the future, negative count values, etc. The book Secure by Design, chapters 4 and 5, will provide more details.
 
 # Step 4 - Validate permission to perform the operation
+
 In step 2, we transformed our permissions. We base the permission to perform an operation on the transformed permissions in our domain code and not directly with scopes and user identity.
 
 Lets implement this in the `ProductController` just below the data validation. Check that the user has the claim `urn:permissions:products:read` with value `true` and return `401 Forbidden` if the claim is not present with the required value.
@@ -407,7 +423,8 @@ For this step, start coding in the `/SalesAPI/5-data-access-validation` folder.
 So far in the workshop we have added authentication with a third party identity provider, authorization by transforming the user's access token into a permission model and validated requests. The purpose of this step is to refactor the code in a way that makes it both more readable and more secure. We are going to use concepts from Secure by Design to do this. We want to use design patterns that also helps secure our code.
 
 ## Domain primitives
-To start, we introduce a `domain primitive` in the ProductId class that will validate input data and throws an exception if not valid. Create a folder in the `Domain`-folder called `DomainPrimitives` and create a class within it named `ProductId` in its own separate file.
+
+To start, we introduce a _domain primitive_ in the `ProductId` class that will validate input data and throws an exception if not valid. Create a folder in the `Domain`-folder called `DomainPrimitives` and create a class within it named `ProductId` in its own separate file.
 
 ```csharp
 namespace SalesApi.Domain.DomainPrimitives;
@@ -437,11 +454,12 @@ public class ProductId
 
 ```
 
-If we look closely at this class we can notice that it encapsulates the primitive string with our domain logic. When we now have a ProductId in hand, we know that it is not null and that it conforms with our understanding of a ProductId. There is no way to edit the ProductId without going past the constructor since the value has a private setter. So we can say that this class is immutable. If you or some other developer on the team tries to create an invalid ProductId an Exception will be thrown.
+If we look closely at this class we can notice that it encapsulates the primitive string with our domain logic. When we now have a `ProductId` in hand, we know that it is not null and that it conforms with our understanding of a `ProductId`. There is no way to edit the `ProductId` without going past the constructor since the value has a private setter. So we can say that this class is immutable. If you or some other developer on the team tries to create an invalid `ProductId` an exception will be thrown.
 
-Encapsulating in this manner is what we call domain primitives in Secure by Design. Read more about this in the Secure by Design book chapter 5.
+Encapsulating in this manner is what we call _domain primitives_ in Secure by Design. Read more about this in the Secure by Design book chapter 5.
 
-Now we need to refactor our code to use this ProductId.
+Now we need to refactor our code to use this `ProductId`.
+
 - Go to the `Product` class and change the type of the `ProductId` property from `string` to `ProductId`
 
 <details>
@@ -466,7 +484,7 @@ public class Product(ProductId id, string name, decimal price, string marketId)
 </p>
 </details>
 
-- Update the `ProductRepository` to use this new type. Remember to update the signature of the `GetBy` method in both the repository and its interface, `IProductRepository`, to use the `ProductId` instead of the inputted `string`.
+- Update the `ProductRepository` to use this new type. Remember to update the signature of the `GetBy` method in both the repository and its interface, `IProductRepository`, to use `ProductId` instead of `string`.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -559,10 +577,11 @@ public class MappingProfile : Profile
 }
 ```
 
-There are other properties in the `Product` model that should be encapsulated in a domain primitive, but we wont implement them all in this workshop. The ProductId serves as an example on how we would do this for a property.
+There are other properties in the `Product` model that should be encapsulated in a domain primitive, but we wont implement them all in this workshop. The `ProductId` serves as an example on how we would do this for a property.
 
 ## Handling errors
-So far we have all our code in the controller. This is neither a good nor scalable solution. We want to refactor this code into a `ProductService`. Lets create an interface named `IProductService` like below. We can place it a file called `IProductService.cs` in the folder `Domain/Services/`
+
+So far we have all our code in the controller. This is neither a good nor scalable solution. We want to refactor this code into a `ProductService`. Lets create an interface named `IProductService` like below. We can place it a file called `IProductService.cs` in the folder `Domain/Services/`.
 
 ```csharp
 namespace SalesApi.Domain.Services;
@@ -599,9 +618,11 @@ We only raise exceptions when something we did not design for has happened. One 
 
 We recommend reading chapter 9 in Secure by Design for more in-depth reasoning about this.
 
-With this in mind, lets implement the `ProductService`. Create the class in the code and implement the `IProductService` interface. Use the following code as a starting point, and implement the missing part.
+With this in mind, lets implement the `ProductService`. Create the class in the `Domain/Services/` folder and implement the `IProductService` interface. Use the following code as a starting point, and implement the missing part.
 
 ```csharp
+namespace SalesApi.Domain.Services;
+
 public class ProductService(IProductRepository productRepository, IHttpContextAccessor contextAccessor) : IProductService
 {
     public async Task<(ReadDataResult, List<Product>?)> GetAllAvailableProducts()
@@ -688,13 +709,14 @@ public class ProductService(IProductRepository productRepository, IHttpContextAc
 </details>
 
 Also register the `ProductService` in `Program.cs`
+
 ```csharp
 builder.Services.AddTransient<IProductService, ProductService>();
 ```
 
 Now lets use that service from the `ProductController`. Refactor the controller to use the `ProductService`.
 
-We want the ProductController to return the proper HTTP responses based on the ReadDataResult from the ProductService. These are some of the possible HTTP responses we can return in ASP.NET is:
+We want the `ProductController` to return the proper HTTP responses based on the `ReadDataResult` from the `ProductService`. These are some of the possible HTTP responses we can return in ASP.NET is:
 
 ```csharp
 OK()
@@ -703,7 +725,7 @@ Forbid()
 BadRequest()
 ```
 
-Hint: use a switch expression to evaluate the `ReadDataResult` and return the correct http status code.
+Hint: use a switch expression to evaluate the `ReadDataResult` and return the correct HTTP status code.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -769,9 +791,12 @@ public class ProductsController(IMapper mapper, IProductService productService) 
 You do not have to use Domain-Driven Design (DDD) to create a secure API. But it is important to clearly identify the trust boundaries and keep domain-specific logic in the domain. Even if we do basic authorization and validation of some basic domain rules in the web layer, using ASP.NET Core attributes or in a reverse-proxy or WAF in front of us, we need to do this in our domain as well. And we should avoid duplicating more advanced domain rules outside of the domain.
 
 ## Handling permissions securely
-As mentioned earlier, representing permissions as .NET Claims may not be optimal. In this section we will try to do something about that. Lets create a `IPermissionService`:
+
+As mentioned earlier, representing permissions as .NET Claims may not be optimal. In this section we will try to do something about that. Lets create an `IPermissionService` in `Domain/Services/`:
 
 ```csharp
+namespace SalesApi.Domain.Services;
+
 public interface IPermissionService
 {
     bool CanReadProducts { get; }
@@ -790,6 +815,7 @@ This service enables us to represent permissions in a strongly-typed way that su
 
 ```csharp
 using System.Security.Claims;
+
 namespace SalesApi.Domain.Services;
 
 public class HttpContextPermissionService : IPermissionService
@@ -903,13 +929,15 @@ public class ProductService(IProductRepository productRepository, IPermissionSer
 </details>
 
 Lastly we need to register the `HttpContextPermissionService` in `Program.cs`
+
 ```csharp
 builder.Services.AddScoped<IPermissionService, HttpContextPermissionService>();
 ```
 
-The transformation from token claims to permissions has moved from the ClaimsTransformation class to this service with this approach. This strongly-typed solution might be a better approach when handling more complex permission models and doing external lookups and caching.
+The transformation from token claims to permissions has moved from the `ClaimsTransformation` class to this service with this approach. This strongly-typed solution might be a better approach when handling more complex permission models and doing external lookups and caching.
 
-Note that this kind of code lends itself nicely to unit tests. You can find examples of tests focusing on security in the repo; good test coverage is vital for security-critical code like this.
+Note that this kind of code lends itself nicely to unit tests. You can find examples of tests focusing on security in Part 2 of this workshop good test coverage is vital for security-critical code like this.
 
-# Workshop summary
+# Summary
+
 From an API perspective we have now done what we can. For a more rich solution to this domain including more domain primitives look at the `SalesApi.completed` project.
