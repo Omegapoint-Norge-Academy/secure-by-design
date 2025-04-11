@@ -17,10 +17,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         builder.Configuration.Bind("JwtBearerOptions", options);
-        // TokenValidationParameters not not currently supported in appsettings for .NET 8
+        // TokenValidationParameters not not currently supported in appsettings for .NET 9
         // Note that type validation might differ, depending on token serivce (IdP).
         // If possible validate that that the token is an access token by using "at+jwt"
-        options.TokenValidationParameters.ValidTypes = new[] { "JWT" };
+        options.TokenValidationParameters.ValidTypes = ["JWT"];
     });
 
 // Demo - Require Bearer authentication scheme for all requests (including non mvc requests), 
