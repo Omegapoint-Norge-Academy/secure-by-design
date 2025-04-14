@@ -1,6 +1,5 @@
-# Workshop Guide: Testing
+# Workshop Guide: Testing <!-- omit from toc -->
 
-- [Workshop Guide: Testing](#workshop-guide-testing)
 - [Introduction](#introduction)
   - [Security Requirements](#security-requirements)
 - [Part 1 - Unit Tests](#part-1---unit-tests)
@@ -16,7 +15,7 @@
 
 # Introduction
 
-This part of the course will guide you through how you can write tests for the web API created earlier in the workshop. These tests will ensure your application follows defence-in-depth design principles. 
+This part of the course will guide you through how you can write tests for the web API created earlier in the workshop. These tests will ensure your application follows defence-in-depth design principles.
 In this test project we will implement unit tests and integration tests. These are located in the Unit and System folders respectively.
 
 The unit tests, located in the `./Unit`-folder will test the logic of individual units/methods within the application. In order to properly test only one unit at a time, dependencies should be mocked. Put simply: When we are testing a method, we only want to test the code within that method. Therefore, if that method relies on other parts of our codebase, we will replace those dependencies with dummies using a mocking library.
@@ -34,17 +33,20 @@ To illustrate the need for explicitly defined security requirements and proper t
 <img src="../Resources/test_api_requirements.png" alt="Example architecture with three APIs" width=600/>
 
 To define all user functionality in one requirement we could state the following:
+
 - Users should be able to consume the APIs they need to provide the required user functionality.
 
 This would meet all functional requirements but from a security point of view, it does not ensure proper access control and violates the principle of least privilege because some roles are able to access resources only intended for other roles.
 
 To address this issue, we could specify our requirement as:
+
 - Users should _only_ be able to consume the APIs they need to provide the required user functionality.
 
-This sounds easy and completely obvious, but teams often fail to identify the test cases needed to avoid vulnerabilities. So how do we verify that users are ___only___ able to access the resource they absolutely need? A common practice is to add negative test cases such as:
+This sounds easy and completely obvious, but teams often fail to identify the test cases needed to avoid vulnerabilities. So how do we verify that users are **_only_** able to access the resource they absolutely need? A common practice is to add negative test cases such as:
+
 - Regular users should _not_ be able to access API3.
 
-This ensures that regular users are only able to access API1 and API2. Similar test cases should be applied for the other user types. 
+This ensures that regular users are only able to access API1 and API2. Similar test cases should be applied for the other user types.
 
 # Part 1 - Unit Tests
 
@@ -58,7 +60,7 @@ For each of the steps below, empty test methods are provided. To better describe
 
     public void NameOfTheMethodWeAreTesting_WhatShouldHappen_Scenario()
 
-For example:  
+For example:
 
     public async Task GetById_ShouldReturn404_WhenNotFound()
 
@@ -94,8 +96,7 @@ Implement the three test methods defined in `ProductIdTests.cs`
 </p>
 </details>
 
-[__Spoiler (full code)__](./completed/Unit/ProductIdTests.cs)
-
+[**Spoiler (full code)**](./completed/Unit/ProductIdTests.cs)
 
 ## Step 2 - ProductService Tests
 
@@ -117,6 +118,7 @@ var productService = new ProductService(productRepository, permissionService);
 To specify return values for properties or method calls for the mocked dependencies, we can do so by utilising the `Returns`-extension method accessible through the substitute:
 
 For properties and expression-bodied members we can use .Returns() directly:
+
 ```csharp
 // permissionService.CanReadProducts should return true
 permissionService
@@ -125,6 +127,7 @@ permissionService
 ```
 
 For methods we have to specify the nature of the argument we are expecting:
+
 ```csharp
 // permissionService.HasPermissionToMarket() should return false when the
 // argument given is a MarketId with an arbitrary value
@@ -209,8 +212,7 @@ Complete the test methods defined in `ProductServiceTests.cs`.
 </p>
 </details>
 
-[__Spoiler (full code)__](./completed/Unit/ProductServiceTests.cs)
-
+[**Spoiler (full code)**](./completed/Unit/ProductServiceTests.cs)
 
 ## Step 3 - ProductController Tests
 
@@ -304,7 +306,7 @@ Finally we will test the methods in the ProductController class. Again, since th
 </p>
 </details>
 
-[__Spoiler (full code)__](./completed/Unit/ProductsControllerTests.cs)
+[**Spoiler (full code)**](./completed/Unit/ProductsControllerTests.cs)
 
 # Part 2 - Integration Tests
 
@@ -336,7 +338,7 @@ await AuthorizeHttpClient(ProductScope.Read);
 
 ## Step 2 - Product Tests
 
-The `ProductTests` class in `ProductTests.cs` inherits from the `BaseTests` class which lets us easily use the HttpClient and authorize it for the tests that need authorization. 
+The `ProductTests` class in `ProductTests.cs` inherits from the `BaseTests` class which lets us easily use the HttpClient and authorize it for the tests that need authorization.
 
 Write tests for the product API testing the `/api/product/{id}` endpoint to receive proper status codes given the different authorizations.
 
@@ -377,7 +379,7 @@ Write tests for the product API testing the `/api/product/{id}` endpoint to rece
 </p>
 </details>
 
-[__Spoiler (full code)__](./completed/System/ProductTests.cs)
+[**Spoiler (full code)**](./completed/System/ProductTests.cs)
 
 # Part 3 (optional) - Create more tests
 

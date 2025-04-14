@@ -1,6 +1,5 @@
-# Workshop guide - Secure API
+# Workshop guide - Secure API <!-- omit from toc -->
 
-- [Workshop guide - Secure API](#workshop-guide---secure-api)
 - [Introduction](#introduction)
 - [Initial setup](#initial-setup)
 - [Step 1 - Token validation](#step-1---token-validation)
@@ -44,7 +43,7 @@ Start by opening the `SalesApi.0-starting-point` project in your IDE of choice. 
 
 After starting the project, you should test that the API responds. There is a [requests file](requests.http) you can use (e.g. by installing Rest Client extensions in VS Code). Alternatively use curl, postman or any other tool you are comfortable with. Issue a GET-request to `https://localhost:7094/api/product`. It should return a list of static products.
 
-The `SalesAPI`-folder containes stepwise solutions where the number on each project folder indicates which step that folder is the solution of. For example, the folder named `2-token-transformation` contains the solution **after** implementing Step 2 in this guide. If you at any point become stuck or are unable to debug something, consider restarting the step you are currently on by coding from the folder with the solution to the steps you have already finished.
+The `SalesAPI`-folder containes stepwise solutions where the number on each project folder indicates which step that folder is the solution of. For example, the folder named `1-token-validation` contains the solution *after* implementing Step 1 in this guide. If you at any point become stuck or are unable to debug something, consider restarting the step you are currently on by coding from the folder with the solution to the steps you have already finished.
 
 # Step 1 - Token validation
 

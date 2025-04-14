@@ -1,9 +1,8 @@
-# Workshop guide - Secure Client
+# Workshop guide - Secure Client <!-- omit from toc -->
 
-- [Workshop guide - Secure Client](#workshop-guide---secure-client)
 - [Introduction](#introduction)
-- [Part 0](#part-0)
-- [Part 1 - Login and Logout](#part-1---login-and-logout)
+- [Initial setup](#initial-setup)
+- [Step 1 - Login and Logout](#step-1---login-and-logout)
   - [Dependencies](#dependencies)
   - [Bootstrapping](#bootstrapping)
     - [Middleware](#middleware)
@@ -13,23 +12,23 @@
       - [Default schemas](#default-schemas)
     - [Add Authorization](#add-authorization)
   - [Account controller](#account-controller)
-  - [Part 1 milestone: Test login](#part-1-milestone-test-login)
-- [Part 2 - User context](#part-2---user-context)
+  - [Step 1 milestone: Test login](#step-1-milestone-test-login)
+- [Step 2 - User context](#step-2---user-context)
   - [User controller](#user-controller)
-  - [Part 2 milestone: Test user context](#part-2-milestone-test-user-context)
-- [Part 3 - Accessing remote API](#part-3---accessing-remote-api)
+  - [Step 2 milestone: Test user context](#step-2-milestone-test-user-context)
+- [Step 3 - Accessing remote API](#step-3---accessing-remote-api)
   - [Bootstrapping](#bootstrapping-1)
   - [Exchanging cookie for access token](#exchanging-cookie-for-access-token)
-  - [Part 3 milestone: Test API access](#part-3-milestone-test-api-access)
-- [Part 4 - Refreshing the token](#part-4---refreshing-the-token)
+  - [Step 3 milestone: Test API access](#step-3-milestone-test-api-access)
+- [Step 4 - Refreshing the token](#step-4---refreshing-the-token)
   - [Dependencies](#dependencies-1)
   - [Create a Token Handler](#create-a-token-handler)
   - [Add offline access scope](#add-offline-access-scope)
   - [Modify Yarp request transform](#modify-yarp-request-transform)
-  - [Part 4 milestone: Test refresh token](#part-4-milestone-test-refresh-token)
-- [Part 5 - Protect against CSRF](#part-5---protect-against-csrf)
+  - [Step 4 milestone: Test refresh token](#step-4-milestone-test-refresh-token)
+- [Step 5 - Protect against CSRF](#step-5---protect-against-csrf)
   - [Add CSRF protection](#add-csrf-protection)
-  - [Part 5 milestone: Test CSRF protection](#part-5-milestone-test-csrf-protection)
+  - [Step 5 milestone: Test CSRF protection](#step-5-milestone-test-csrf-protection)
 - [Appendix](#appendix)
   - [Debugging .NET with Fiddler](#debugging-net-with-fiddler)
     - [HTTPS](#https)
@@ -41,22 +40,27 @@
 
 This part of the course will guide you through how you can create a secure client using C# and .NET 9. We use the OAuth2 and OpenID Connect standards and the backend for frontend (BFF) pattern.
 
-The content is divided into four parts. Step one is by far the most work intensive
+The content is divided into five steps. Step one is by far the most work intensive
 
-# Part 0
+# Initial setup
 
-Start by going to the [Server.0-starting-point](Server.0-starting-point) project. This is the project you will start from.
+Start by going to the [Server.0-starting-point](Server.0-starting-point) project. This is the project you will start from in step 1.
 
 To run the solution two parts need to run:
 
 - Run the SalesApi in its completed version in the background
-- To start the client including the BFF, just run the SalesClient/Server project. This will also start the frontend.
+  - That is the project located at `/SalesApi/completed/SalesApi.completed.csproj`
+- To start the client, including the BFF, just run the `/SalesClient/Server` project. For example when starting out, you will run the `Server.0-starting-point`-project. This will also start the frontend automatically.
 
-# Part 1 - Login and Logout
+Whenever you make code changes, you will need to rebuild the client project. However, as we will not be making any changes to the SalesApi, you can keep it running in the background throughout this part of the workshop.
+
+# Step 1 - Login and Logout
+
+Start coding in the folder named `0-starting-point`. The folder named `1-login-and-logout` contains the suggested solution _after_ completing Step 1.
 
 ## Dependencies
 
-Install the following dependencies using Nuget
+Install the following dependencies using NuGet:
 
 - IdentityModel
 - Microsoft.AspNetCore.Authentication.OpenIdConnect
@@ -65,28 +69,26 @@ Install the following dependencies using Nuget
 
 ### Middleware
 
-Add authentication and authorization middleware to program file.
-It should be added after `UseRouting()` but before `MapControllers()`.
+Add authentication and authorization middleware to the `Program.cs` file. It should be added after `UseRouting()` but before `MapControllers()`.
 
 ```csharp
 app.UseAuthentication();
 app.UseAuthorization();
 ```
 
-Authentication Middleware `UseAuthentication()` attempts to authenticate the user before they're allowed access to secure resources.
+Authentication Middleware `UseAuthentication()` attempts to authenticate the user before they are allowed access to secure resources.
 Authorization Middleware `UseAuthorization()` authorizes a user to access secure resources.
 
 ### Add Authentication
 
-There needs to be two authentication schemes, one for cookie, and one for OpenID Connect.
-These name of these schemes are embedded in framework constants:
+There needs to be two authentication schemes, one for cookie, and one for OpenID Connect. The name of these schemes are embedded in these framework constants:
 
 ```csharp
 CookieAuthenticationDefaults.AuthenticationScheme
 OpenIdConnectDefaults.AuthenticationScheme
 ```
 
-These will be configured separately by adding them us below
+These will be configured separately by adding them like so:
 
 ```csharp
 builder.Services
@@ -99,9 +101,9 @@ builder.Services
     });
 ```
 
-Add this to `Program.cs` just after var `builder = WebApplication.CreateBuilder(args);`
+Add the above code to `Program.cs` just after var `builder = WebApplication.CreateBuilder(args);`
 
-Both these schemes have to be configured. Lets focus on the cookie first.
+Both these schemes have to be configured. Lets focus on the cookie scheme first.
 
 #### Cookie options
 
@@ -113,7 +115,7 @@ These are the options that needs to be configured:
 - [Cookie.SecurePolicy](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#secure-attribute)
 - [Cookie.SameSite](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#samesite-attribute)
 
-To manage the lifetime of the cookie configure these properties:
+To manage the lifetime of the cookie, configure these properties:
 
 - ExpireTimeSpan
 - SlidingExpiration
@@ -122,8 +124,7 @@ Set the expire to 60 minutes, and sliding to true.
 
 The SlidingExpiration is set to true to instruct the handler to re-issue a new cookie with a new expiration time any time it processes a request which is more than halfway through the expiration window.
 
-A session cookie should always be considered essential to the application.
-To skip cookie consent, configure `IsEssential` to `true`.
+A session cookie should always be considered essential to the application. To skip cookie consent, configure `IsEssential` to `true`.
 
 Lastly add code to deliver 403 forbidden instead of redirecting to the login page when a resource is denied.
 
@@ -165,7 +166,7 @@ When all this is done, the code should look like this:
 
 #### OpenID connect options
 
-This is the configuration that allows us to login using the identity provider (IDP).
+This is the configuration that allows us to login using the identity provider (IdP).
 
 Add options for using Authorization code flow with PKCE:
 
@@ -182,11 +183,9 @@ options.RequireHttpsMetadata = true;
 options.SaveTokens = true;
 ```
 
-The `SignInScheme` will make sure that the result of the sign in will be saved to the cookie.
-Setting `RequireHttpsMetadata` to true will make sure https is used when fetching metadata from the IDP.
-`SaveTokens` make sure tokens are saved to the cookie for later use.
+The `SignInScheme` will make sure that the result of the sign-in will be saved to the cookie. Setting `RequireHttpsMetadata` to true will make sure HTTPS is used when fetching metadata from the IdP. `SaveTokens` makes sure tokens are saved to the cookie for later use.
 
-Add IDP configuration (client secret will be handed out separately)
+Add IdP configuration (client secret will be handed out separately)
 
 ```csharp
 options.Authority = "https://omegapoint-norge-workshop.eu.auth0.com";
@@ -202,14 +201,9 @@ options.Scope.Add("openid");
 options.Scope.Add("profile");
 ```
 
-The `openid` scope is added to instruct that we are using OpenID connect and not pure OAuth2.0.
-The `profile` scope will instruct the IDP to return claims as
-`name`, `family_name`, `given_name`, `middle_name`, `nickname`, `picture`, and `updated_at` if available.
-In essence the `profile` scope lets us get basic user profile info.
+The `openid` scope is added to instruct that we are using OpenID connect and not pure OAuth2.0. The `profile` scope will instruct the IdP to return claims as `name`, `family_name`, `given_name`, `middle_name`, `nickname`, `picture`, and `updated_at` if available. In essence the `profile` scope lets us get basic user profile info.
 
-We also want to make sure that redirect to the identity provider is not done when calling the API, or the user info endpoint
-The framework will try to redirect to the identity provider when the API responds with Unauthorized.
-We can modify this behaviour by adding intercepting the `OnRedirectToIdentityProvider` event and setting Unauthorized as the response.
+We also want to make sure that a redirect to the identity provider is not performed when calling the API, or the user info endpoint. By default, the framework will try to redirect to the identity provider whenever the API responds with Unauthorized. We can modify this behaviour by intercepting the `OnRedirectToIdentityProvider`-event and setting Unauthorized as the response:
 
 ```csharp
 options.Events.OnRedirectToIdentityProvider = context =>
@@ -225,9 +219,7 @@ options.Events.OnRedirectToIdentityProvider = context =>
 };
 ```
 
-Most identity providers (IDPs) have there own quirks.
-Auth0 have a sign out endpoint that does not conform to standards.
-To handle this, add this code to the options:
+Most identity providers (IdPs) have their own quirks. Auth0 have a sign-out endpoint that does not conform to standards. To handle this, add this code to the options:
 
 ```csharp
 options.Events.OnRedirectToIdentityProviderForSignOut = context =>
@@ -245,7 +237,7 @@ options.Events.OnRedirectToIdentityProviderForSignOut = context =>
 };
 ```
 
-This code builds the sign out request uri and configures the sign out callback.
+This code builds the sign-out request URI and configures the sign-out callback.
 
 When all this is added, the code should look like this:
 
@@ -305,8 +297,7 @@ When all this is added, the code should look like this:
 
 #### Default schemas
 
-We need to tell .NET that our default scheme is cookie, and that our challenge scheme is openid.
-To do this, add some options to `AddAuthentication()`
+We need to tell .NET that our default scheme is cookie, and that our challenge scheme is OpenId. To do this, add some options to `AddAuthentication()`
 
 ```csharp
 .AddAuthentication(options =>
@@ -318,12 +309,11 @@ To do this, add some options to `AddAuthentication()`
 
 ### Add Authorization
 
-We need to add some kind of policy for our users.
-Lets add authorization `AddAuthorization()` and create a simple policy.
-The policy should only require a user to be authenticated.
-Hint: use the `AuthorizationPolicyBuilder()`.
+We need to add some kind of policy for our users. Lets add authorization `AddAuthorization()` and create a simple policy. The policy should only require a user to be authenticated.
 
-Make sure the policy is configured as default policy and fallback policy
+Hint: Use the `AuthorizationPolicyBuilder()`.
+
+Make sure the policy is configured as both default policy and fallback policy
 
 The code should look something like this:
 
@@ -347,32 +337,24 @@ builder.Services.AddAuthorization(options =>
 </p>
 </details>
 
-Also add the policy to all controllers and the reverse proxy by adding `RequireAuthorization()` to the middlewares.
-Make sure that the policy names id the same as used in `AddPolicy()` earlier.
+Also add the policy to all controllers and the reverse proxy by adding `RequireAuthorization()` to the middlewares. Make sure that the policy name is the same as defined in `AddPolicy()` earlier.
 
 ```csharp
 app.MapControllers().RequireAuthorization("AuthenticatedUser");
 app.MapReverseProxy().RequireAuthorization("AuthenticatedUser");
 ```
 
-When this is added, you dont need to add the authorize attribute to all controllers.
+When this is added, you don't need to add the authorize attribute to all controllers.
 
 ## Account controller
 
 The account controller should handle login and logout.
 
-Create a controller called `AccountController`,
-and add two endpoints:
+Create a controller named `AccountController` in a new folder named `Controllers`, and add two endpoints:
 
-**client/account/login:** This endpoint should be a http get, and it should accept a `returnUrl` as a query parameter.
-It should return a `Challenge()` where the `returnUrl` is passed inn by `AuthenticationProperties`. If the `returnUrl` is null, then it should be set to "/".
-The `returnUrl` should be validated to be relative. This will protect against open redirector attacks. Use `Url.IsLocalUrl` to check if the `returnUrl` is valid.
-See https://learn.microsoft.com/en-us/aspnet/core/security/preventing-open-redirects?view=aspnetcore-7.0 for more info.
-The endpoint should be accessible for anonymous users.
+**client/account/login:** This endpoint should be an HTTP GET, and should accept a `returnUrl` as a query parameter. It should return a `Challenge()` where the `returnUrl` is passed in by `AuthenticationProperties`. If the `returnUrl` is null, it should be set to `"/"`. The `returnUrl` should be validated to be relative. This will protect against open redirector attacks. Use `Url.IsLocalUrl` to check if the `returnUrl` is valid. Check out the article [Prevent open redirect attacks in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/security/preventing-open-redirects?view=aspnetcore-9.0) for more info. The endpoint should be accessible for anonymous users.
 
-**client/account/logout:** This endpoint should be a http get, and accept no parameters.
-It should do a `HttpContext.SignOutAsync()` on both the cookie scheme, and the openid scheme.
-When signing out of the cookie scheme a redirect uri to the home page of the app should be configured.
+**client/account/logout:** This endpoint should be an HTTP GET, and accept no parameters. It should do a `HttpContext.SignOutAsync()` on both the cookie scheme, and the openid scheme. When signing out of the cookie scheme a redirect URI to the home page of the app should be configured.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -412,30 +394,31 @@ public class AccountController : ControllerBase
 </p>
 </details>
 
-## Part 1 milestone: Test login
+## Step 1 milestone: Test login
 
-This is a milestone, login and logout could now be tested.
-When logging in, you should be redirected to Auth0 login page.
-When prompted with login from Auth0, sign up with an email and password of your choice.
-To verify that you are actually logged in, go to the browser console and check if a cookie named `.AspNetCore.Cookies` is present.
-Also try logging out, and logging in again and verify that you are prompted with login again.
+This is a milestone, login and logout should now be tested. When logging in, you should be redirected to the Auth0 login page. When prompted with login from Auth0, sign up with an email and password of your choice. To verify that you are actually logged in, open your browser devtools and check if a cookie named `.AspNetCore.Cookies` is present.
+
+To log out, you will need to manually visit the logout endpoint at https://localhost:7110/client/account/logout. The reason for this is that at this point in the workshop, there is no endpoint in our BFF for providing the frontend with the user's authentication state. Thus, even if you are logged in, there will be no logout button in the frontend. This will be implemented in the next step.
+
+After logging out, verify that you are once again prompted with the Auth0 login page when attempting to log in.
 
 If anything fails, it should be fixed before moving on.
 
 Debugging tips:
 
-- Use fiddler to inspect the communication between the BFF and the IDP. See [appendix](#debugging-net-with-fiddler)
-- Use browser tools and inspect the console and network.
-- Compare with [solution](Server.1-login-and-logout)
+- Use Fiddler to inspect the communication between the BFF and the IdP. See [appendix](#debugging-net-with-fiddler)
+- Use browser devtools and inspect the console and network.
+- Compare with the [solution](Server.1-login-and-logout)
 
-# Part 2 - User context
+# Step 2 - User context
 
-This parts is about adding an authentication context to the frontend.
+In this step we will be adding an authentication context to the frontend.
 
 ## User controller
 
-The user controller should return authentication state. This state is intended for the client.
-Create a user info record like below:
+The user controller should return the authentication state of the user. This state is intended for the client.
+
+First, create a user info record like below:
 
 ```csharp
 public record UserInfo(
@@ -443,14 +426,9 @@ public record UserInfo(
     List<KeyValuePair<string, string>> Claims);
 ```
 
-Create a user controller with the current endpoint:
+Then, create a controller named `UserController` in the `Controllers`-folder with the following endpoint:
 
-**client/user:** This endpoint should be a http get, and accept no parameters.
-It should return a `UserInfo` record. `UserInfo` should be populated with data from the `UserPrincipal`.
-The `UserPrincipal` can be accessed with the property `User` from the `ControllerBase`. This object contains authentication states and all claims.
-When adding claims to `UserInfo`, make sure to only add the claims we need.
-We do not want to expose all claims for security reasons.
-For now, expose only the claim named `name`.
+**client/user:** This endpoint should be an HTTP GET, and accept no parameters. It should return a `UserInfo` record. `UserInfo` should be populated with data from the `UserPrincipal`. The `UserPrincipal` can be accessed with the property `User` from the `ControllerBase`. This object contains authentication states and all claims. When adding claims to `UserInfo`, make sure to only add the claims we need. We do not want to expose all claims for security reasons. For now, expose only the claim named `name`.
 
 <details>
 <summary><b>Spoiler (Full code)</b></summary>
@@ -485,19 +463,19 @@ public class UserController : ControllerBase
 </p>
 </details>
 
-## Part 2 milestone: Test user context
+## Step 2 milestone: Test user context
 
-This is a milestone, user context can now be tested. Verify that the logout/login in the client does show the correct state, and that you are able to log in and out. If anything fails, it should be fixed before moving on.
+This is a milestone, user context can now be tested. Verify that the logout/login in the client shows the correct state, and that you are able to log in and out. After restarting the BFF, you might need to **reload and clear cache** in your browser for changes to take effect. If anything fails, it should be fixed before moving on.
 
 Debugging tips:
 
-- Use fiddler to inspect the communication between the BFF and the IDP. See [appendix](#debugging-net-with-fiddler)
-- Use browser tools and inspect the console and network.
-- Compare with [solution](Server.2-user-context)
+- Use Fiddler to inspect the communication between the BFF and the IdP. See [appendix](#debugging-net-with-fiddler)
+- Use browser devtools and inspect the console and network.
+- Compare with the [solution](Server.2-user-context)
 
-When prompted with login from Auth0, sign up with an email and password of your choice.
+When prompted with login from Auth0, log in with your account from Step 1 or sign up with an email and password of your choice.
 
-# Part 3 - Accessing remote API
+# Step 3 - Accessing remote API
 
 We will now connect to the SalesApi.
 
@@ -507,18 +485,15 @@ We will now connect to the SalesApi.
 
 ## Bootstrapping
 
-To get an access token for the API we need to request the API scope.
-Add the scope to the options in `AddOpenIdConnect`.
+To get an access token for the API we need to request the API scope. Add the scope above to the options in `AddOpenIdConnect` in `Program.cs`.
 
-Auth0 also requires that audience is specified when requesting scope for an API.
-This is not always required by all IDPs. The `OnRedirectToIdentityProvider` event allows us to add a property with the audience of the API.
-Add the following code to the event:
+Auth0 also requires that the audience is specified when requesting scope for an API. This is not always required by all IdPs. The `OnRedirectToIdentityProvider` event allows us to add a property with the audience of the API. Add the following code to the event:
 
 ```csharp
 context.ProtocolMessage.SetParameter("audience", "sales-api");
 ```
 
-Also request relevant scopes for the remote API
+Also request relevant scopes for the remote API:
 
 ```csharp
 options.Scope.Add("products.read");
@@ -527,8 +502,7 @@ options.Scope.Add("products.write");
 
 ## Exchanging cookie for access token
 
-The access token is located is accessible through the HttpContext. We are using a reverse proxy for all API requests.
-We can configure a transform on the proxy that adds the access token to the request.
+The access token is accessible through the HttpContext. We are using a reverse proxy for all API requests. We can configure a transform on the proxy that adds the access token to the request.
 
 ```csharp
 builder.Services.AddReverseProxy()
@@ -546,25 +520,24 @@ builder.Services.AddReverseProxy()
     });
 ```
 
-## Part 3 milestone: Test API access
+## Step 3 milestone: Test API access
 
-Test that access we now can access the products when we are logged in.
-If anything fails, it should be fixed before moving on.
+Verify that we can access the products when we are logged in. If anything fails, it should be fixed before moving on.
 
 Debugging tips:
 
-- Set breakpoint inside `AddRequestTransform` and inspect the access token using https://jwt.io
-- Compare with [solution](Server.3-accessing-remote-api)
+- Set a breakpoint inside `AddRequestTransform` and inspect the access token using https://jwt.io
+- Compare with the [solution](Server.3-accessing-remote-api)
 
-# Part 4 - Refreshing the token
+# Step 4 - Refreshing the token
 
-The access token is configured to expire in 60 seconds. Currently the users will have to log in and out to get a new access token. Let's start using refresh tokens to improve the user experience.
+The access token is configured to expire after 60 seconds. Currently the users will have to log out and in again to get a new access token. Let's start using refresh tokens to improve the user experience.
 
 ## Dependencies
 
 We will use Duende Software's open source token management package. Most of Duende is licenced, as of 27.02.2025 the Automatic token management packaged is released under the Apache 2.0 license. Keep in mind that this can change.
 
-Install the following dependencies using Nuget
+Install the following dependencies using NuGet:
 
 - Duende.AccessTokenManagement.OpenIdConnect
 
@@ -610,7 +583,7 @@ options.Scope.Add("offline_access");
 
 ## Modify Yarp request transform
 
-Modify the request transformation from step 3 to get tokens using the new `AppTokenHandler` instead of getting it directly from the http context.
+Modify the request transformation from Step 3 to get tokens using the new `AppTokenHandler` instead of getting it directly from the HTTP context.
 
 Use `var tokenHandler = transformContext.HttpContext.RequestServices.GetRequiredService<AppTokenHandler>();` to get the token handler.
 
@@ -638,15 +611,15 @@ builder.Services.AddReverseProxy()
 </p>
 </details>
 
-## Part 4 milestone: Test refresh token
+## Step 4 milestone: Test refresh token
 
-Test that we still have access to products in the web page after 60 secons have passed
+Test that you are still able to read products in the web page after logging in and waiting 60 seconds for the access token to expire.
 
-# Part 5 - Protect against CSRF
+# Step 5 - Protect against CSRF
 
-We already have a same site cookie, but that will not protect an application from CSRF from other subdomains. If an attacker can get hold of another subdomain in your organization, they can perform CSRF against your application.
+We already have a same-site cookie, but that will not protect an application from CSRF from other subdomains. If an attacker can get hold of another subdomain in your organization, they can perform CSRF against your application.
 
-To add protection for this, we need ta add a custom header to every request going from the browser to the BFF. This custom header will ensure that preflight CORS is required, and only the same ORIGIN will be allowed to add custom headers. And that does not include subdomains. To ensure the header is not removed by an attack we validate its presence in the BFF.
+To add protection for this, we need to add a custom header to every request going from the browser to the BFF. This custom header will ensure that preflight CORS is required, and only the same ORIGIN will be allowed to add custom headers. And that does not include subdomains. To ensure the header is not removed by an attack we validate its presence in the BFF.
 
 The key here is that our cookie gives SAME SITE protection for our requests, but we want to enhance this protection to SAME ORIGIN.
 
@@ -656,7 +629,7 @@ The key here is that our cookie gives SAME SITE protection for our requests, but
 
 ## Add CSRF protection
 
-The client already have a custom header implemented with `CsrfTokenHandler.cs`, but we need to validate its presence in the BFF. We can do this by adding a middleware.
+The client already has a custom header implemented with `CsrfTokenHandler.cs`, but we need to validate its presence in the BFF. We can do this by adding a middleware.
 
 The middleware should return `Bad Request` if the header `X-Csrf-Token` is missing. Remember to register the middleware in `Program.cs`. There are some endpoints that should not have this check applied. One of them are GET requests in general since they are not state changing. Also we need to make sure "/account/login", "/account/logout", "/signin-oidc" does not have this applied.
 
@@ -693,14 +666,14 @@ public class CsrfTokenMiddleware(RequestDelegate next)
     }
 }
 
-// In program.cs
+// In Program.cs
 app.UseMiddleware<CsrfTokenMiddleware>();
 ```
 
 </p>
 </details>
 
-## Part 5 milestone: Test CSRF protection
+## Step 5 milestone: Test CSRF protection
 
 We can test the validation by removing `.AddHttpMessageHandler<CsrfTokenHandler>()` from `Program.cs` in the Client project. When no header is added, our requests should fail.
 
@@ -711,12 +684,11 @@ We can test the validation by removing `.AddHttpMessageHandler<CsrfTokenHandler>
 ### HTTPS
 
 To view https traffic in fiddler, go to **Tools -> Fiddler Options -> HTTPS** and activate HTTPS by checking the boxes shown below
-![alt text](../Resources/fiddler_https.PNG?raw=true)
+![Fiddler settings](../Resources/fiddler_https.PNG?raw=true)
 
 ### Capture .NET traffic
 
-Fiddler relies on proxies to intercept requests. To inspect all traffic from .NET a proxy must be added.
-Open `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Config\machine.config` and add the following code section at the bottom immediately after `</system.web>`
+Fiddler relies on proxies to intercept requests. To inspect all traffic from .NET a proxy must be added. Open `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Config\machine.config` and add the following code section at the bottom immediately after `</system.web>`
 
 ```xml
 <system.net>
